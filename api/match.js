@@ -26,19 +26,16 @@ export default async function handler(req, res) {
     // -----------------------
     let presupuesto = null;
 
-    // 62,000,000
     const matchNumeroGrande = texto.match(/\$?\s?([\d,]{6,})/);
     if (matchNumeroGrande) {
       presupuesto = parseInt(matchNumeroGrande[1].replace(/,/g, ""));
     }
 
-    // 7 millones
     const matchMillones = texto.match(/(\d+)\s?(millones|millon|mill)/);
     if (matchMillones && !presupuesto) {
       presupuesto = parseInt(matchMillones[1]) * 1000000;
     }
 
-    // 30 mil
     const matchMiles = texto.match(/(\d+)\s?mil/);
     if (matchMiles && !presupuesto) {
       presupuesto = parseInt(matchMiles[1]) * 1000;
@@ -86,16 +83,35 @@ export default async function handler(req, res) {
       if (buscaDepto && tipo.includes("departamento")) score += 2;
 
       // -----------------------
-      // ZONA AUTOMÁTICA 🔥
+      // ZONA INTELIGENTE 🔥
       // -----------------------
-      const palabras = texto.split(" ");
+      const palabrasFiltradas = texto
+        .replace(/[^\w\s]/g, "")
+        .split(" ")
+        .filter(palabra =>
+          palabra.length > 4 &&
+          ![
+            "busco",
+            "casa",
+            "depto",
+            "departamento",
+            "venta",
+            "renta",
+            "recamaras",
+            "recamara",
+            "presupuesto",
+            "millones",
+            "millon",
+            "mil"
+          ].includes(palabra)
+        );
 
-      const coincideZona = palabras.some(palabra =>
-        palabra.length > 4 && zona.includes(palabra)
+      const coincideZona = palabrasFiltradas.some(palabra =>
+        zona.includes(palabra)
       );
 
       if (coincideZona) {
-        score += 4;
+        score += 5;
       }
 
       // Presupuesto
@@ -114,7 +130,7 @@ export default async function handler(req, res) {
     // FILTRO FINAL
     // -----------------------
     const filtradas = resultados
-      .filter(p => p.score >= 5)
+      .filter(p => p.score >= 6)
       .sort((a, b) => b.score - a.score);
 
     // -----------------------
