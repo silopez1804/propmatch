@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-
   try {
     const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
     const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
@@ -12,17 +11,14 @@ export default async function handler(req, res) {
 
     const texto = chat.toLowerCase();
 
-    // INTENCIÓN
     const buscaVenta = texto.includes("venta");
     const buscaRenta = texto.includes("renta");
-
     const buscaCasa = texto.includes("casa");
     const buscaDepto = texto.includes("depa") || texto.includes("departamento");
 
     const zonas = ["bosques", "lomas", "interlomas", "polanco", "condesa"];
     const zonasDetectadas = zonas.filter(z => texto.includes(z));
 
-    // PRESUPUESTO
     let presupuesto = null;
 
     const matchNumeroGrande = texto.match(/\$?\s?([\d,]{6,})/);
@@ -35,7 +31,6 @@ export default async function handler(req, res) {
       presupuesto = parseInt(matchMillones[1]) * 1000000;
     }
 
-    // TRAER DATA
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -49,9 +44,7 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // SCORING (CLAVE 🔥)
     const resultados = data.map(p => {
-
       const tipo = (p["tipo de propiedad"] || "").toLowerCase();
       const zona = (p["colonia/zona/barrio"] || "").toLowerCase();
 
@@ -72,9 +65,10 @@ export default async function handler(req, res) {
       if (buscaDepto && tipo.includes("departamento")) score += 2;
 
       if (zonasDetectadas.length > 0) {
-  if (zonasDetectadas.some(z => zona.includes(z))) {
-    score += 3; // zona pesa más
-  }
+        if (zonasDetectadas.some(z => zona.includes(z))) {
+          score += 3;
+        }
+      }
 
       if (presupuesto && buscaVenta && precioVenta > 0) {
         if (precioVenta <= presupuesto * 1.3) score += 2;
