@@ -140,19 +140,22 @@ export default async function handler(req, res) {
 
       let match = true;
      
-      // FILTRO POR CARACTERÍSTICAS
+    // FILTRO POR CARACTERÍSTICAS
 
-    if (recamaras && p["recámaras"]) {
-    match = match && p["recámaras"] >= recamaras;
-}
+    if (recamaras !== null) {
+    const recProp = Number(p["recámaras"]) || 0;
+    match = match && recProp >= recamaras;
+ }
 
-   if (banos && p["baños"]) {
-   match = match && p["baños"] >= banos;
-}
+    if (banos !== null) {
+    const banProp = Number(p["baños"]) || 0;
+    match = match && banProp >= banos;
+ }
 
-   if (estacionamientos && p["estacionamientos"]) {
-   match = match && p["estacionamientos"] >= estacionamientos;
-}
+   if (estacionamientos !== null) {
+   const estProp = Number(p["estacionamientos"]) || 0;
+   match = match && estProp >= estacionamientos;
+ }
 
       // TIPO
       if (tipoDetectado) {
