@@ -46,15 +46,23 @@ await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
     for (let p of propiedades) {
 
       const data = {
-        "id público (EB)": p.public_id,
-        "título de propiedad": p.title,
-        "tipo de propiedad": p.property_type,
-        "colonia/zona/barrio": p.location?.name || "",
-        "precio de venta": p.operations?.find(o => o.type === "sale")?.amount || null,
-        "precio de renta": p.operations?.find(o => o.type === "rental")?.amount || null,
-        "propiedad en venta": p.operations?.some(o => o.type === "sale") || false,
-        "propiedad en renta": p.operations?.some(o => o.type === "rental") || false
-      };
+  "id público (EB)": p.public_id,
+  "título de propiedad": p.title,
+  "tipo de propiedad": p.property_type,
+  "colonia/zona/barrio": p.location?.name || "",
+
+  "precio de venta": p.operations?.find(o => o.type === "sale")?.amount || null,
+  "precio de renta": p.operations?.find(o => o.type === "rental")?.amount || null,
+
+  "propiedad en venta": p.operations?.some(o => o.type === "sale") || false,
+  "propiedad en renta": p.operations?.some(o => o.type === "rental") || false,
+
+  // 🔥 NUEVO
+  "recámaras": p.bedrooms || null,
+  "baños": p.bathrooms || null,
+  "estacionamientos": p.parking_spaces || null,
+  "m2": p.construction_size || null
+};
 
       await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
         method: "POST",
