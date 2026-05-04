@@ -8,7 +8,14 @@ export default async function handler(req, res) {
     // 1. TRAER PROPIEDADES (PAGINADO SEGURO)
     // -----------------------
     let allProperties = [];
-
+    // BORRAR INVENTARIO ANTERIOR
+await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
+  method: "DELETE",
+  headers: {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`
+  }
+});
     for (let page = 1; page <= 5; page++) { // ajusta si quieres más páginas
       const ebResponse = await fetch(
         `https://api.easybroker.com/v1/properties?page=${page}`,
