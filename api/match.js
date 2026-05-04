@@ -1,10 +1,40 @@
 export default async function handler(req, res) {
+
   const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
   const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
 
-  const { chat } = req.body;
+  const { text } = req.body;
 
-  // Obtener propiedades
+  // ====== NORMALIZAR TEXTO ======
+  const input = text.toLowerCase();
+
+  // ====== EXTRAER PRESUPUESTO ======
+  const presupuestoMatch = input.match(/\$?([\d,]+)/);
+  const presupuesto = presupuestoMatch
+    ? parseInt(presupuestoMatch[1].replace(/,/g, ""))
+    : null;
+
+  // ====== EXTRAER RECÁMARAS ======
+  const recamarasMatch = input.match(/(\d+)\s*(rec|recámara|recámaras)/);
+  const recamaras = recamarasMatch ? parseInt(recamarasMatch[1]) : null;
+
+  // ====== EXTRAER ZONA (puedes ampliar esto después) ======
+  let zona = null;
+  const zonas = ["lomas", "interlomas", "bosques", "tecama", "cuajimalpa", "santa fe"];
+  zonas.forEach(z => {
+    if (input.includes(z)) zona = z;
+  });
+
+  // ====== DETECTAR TIPO DE PROPIEDAD ======
+  let tipo = null;
+
+  if (/depa|departamento/i.test(input)) tipo = "departamento";
+  if (/casa/i.test(input)) tipo = "casa";
+  if (/oficina/i.test(input)) tipo = "oficina";
+  if (/local/i.test(input)) tipo = "local";
+  if (/terreno/i.test(input)) tipo = "terreno";
+
+  // ====== TRAER PROPIEDADES ======
   const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
     headers: {
       apikey: SUPABASE_KEY,
@@ -12,78 +42,27 @@ export default async function handler(req, res) {
     }
   });
 
-  const properties = await response.json();
+  const data = await response.json();
 
-  const chatLower = chat.toLowerCase();
+  // ====== FILTRAR MATCHES ======
+  const matches = data.filter(p => {
 
-  // detectar presupuesto
-  let presupuesto = null;
-  const matchPrecio = chatLower.match(/\d{2,3},?\d{3}/);
-  if (matchPrecio) {
-    presupuesto = parseInt(matchPrecio[0].replace(",", ""));
-  }
+    const precio = parseInt((p["precio de renta"] || "").toString().replace(/,/g, "")) || 0;
+    const recs = p["recámaras"] || 0;
+    const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
+    const tipoProp = (p["tipo de propiedad"] || "").toLowerCase();
 
-  // detectar zona
-  const zonas = ["lomas", "polanco", "condesa", "roma", "interlomas", "bosques", "santa fe"];
-  let zonaDetectada = zonas.find(z => chatLower.includes(z));
-
-  // detectar recámaras
-  let recamaras = null;
-  const matchRec = chatLower.match(/(\d+)\s*rec/);
-  if (matchRec) {
-    recamaras = parseInt(matchRec[1]);
-  }
-
-  // detectar baños
-  let banos = null;
-  const matchBan = chatLower.match(/(\d+)\s*bañ/);
-  if (matchBan) {
-    banos = parseInt(matchBan[1]);
-  }
-
-  // detectar estacionamientos
-  let estacionamientos = null;
-  const matchEst = chatLower.match(/(\d+)\s*(est|auto|coche)/);
-  if (matchEst) {
-    estacionamientos = parseInt(matchEst[1]);
-  }
-
-  // filtrar propiedades
-  const matches = properties.filter(p => {
-    let ok = true;
-
-    // precio (renta o venta)
-    const precio = p["precio renta"] || p["precio venta"];
-    if (presupuesto && precio) {
-      ok = ok && parseInt(precio) <= presupuesto;
-    }
-
-    // zona
-    const zona = p["colonia / zona / barrio"];
-    if (zonaDetectada && zona) {
-      ok = ok && zona.toLowerCase().includes(zonaDetectada);
-    }
-
-    // recámaras
-    if (recamaras && p["recamaras"]) {
-      ok = ok && parseInt(p["recamaras"]) >= recamaras;
-    }
-
-    // baños
-    if (banos && p["baños"]) {
-      ok = ok && parseInt(p["baños"]) >= banos;
-    }
-
-    // estacionamientos
-    if (estacionamientos && p["estacionamientos"]) {
-      ok = ok && parseInt(p["estacionamientos"]) >= estacionamientos;
-    }
-
-    return ok;
+    return (
+      (!presupuesto || precio <= presupuesto) &&
+      (!recamaras || recs >= recamaras) &&
+      (!zona || zonaProp.includes(zona)) &&
+      (!tipo || tipoProp.includes(tipo))
+    );
   });
 
+  // ====== RESPUESTA ======
   res.status(200).json({
     encontrados: matches.length,
-    matches: matches.slice(0, 5)
+    matches: matches.slice(0, 10)
   });
 }
