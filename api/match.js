@@ -9,32 +9,43 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "No hay texto" });
     }
 
-    const texto = chat.toLowerCase();
+    // -----------------------
+    // LIMPIAR TEXTO
+    // -----------------------
+    let texto = chat.toLowerCase()
+      .replace(/\n/g, " ")
+      .replace(/\[.*?\]/g, "")
+      .replace(/[^\w\s$.,]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
     // -----------------------
-    // DETECTAR OPERACIÓN
+    // TIPO
+    // -----------------------
+    let tipoDetectado = null;
+
+    if (texto.includes("casa")) tipoDetectado = "casa";
+    else if (texto.includes("departamento") || texto.includes("depa") || texto.includes("ph") || texto.includes("garden"))
+      tipoDetectado = "departamento";
+    else if (texto.includes("oficina")) tipoDetectado = "oficina";
+    else if (texto.includes("local")) tipoDetectado = "local";
+    else if (texto.includes("terreno")) tipoDetectado = "terreno";
+    else if (texto.includes("bodega")) tipoDetectado = "bodega";
+
+    // -----------------------
+    // OPERACIÓN
     // -----------------------
     const buscaVenta = texto.includes("venta");
     const buscaRenta = texto.includes("renta");
 
     // -----------------------
-    // DETECTAR TIPO
-    // -----------------------
-    let tipoDetectado = null;
-
-    if (texto.includes("casa")) tipoDetectado = "casa";
-    else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
-    else if (texto.includes("oficina") || texto.includes("consultorio")) tipoDetectado = "oficina";
-    else if (texto.includes("local")) tipoDetectado = "local";
-
-    // -----------------------
-    // DETECTAR PRESUPUESTO
+    // PRECIO
     // -----------------------
     let presupuesto = null;
 
-    const match = texto.match(/\$?\s?([\d,]+)/);
-    if (match) {
-      presupuesto = parseInt(match[1].replace(/,/g, ""));
+    const matchPrecio = texto.match(/\$\s?([\d,]+)/);
+    if (matchPrecio) {
+      presupuesto = parseInt(matchPrecio[1].replace(/,/g, ""));
     }
 
     // -----------------------
@@ -50,9 +61,25 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     // -----------------------
-    // FILTRADO SIMPLE PERO EFECTIVO
+    // 🔥 DETECTAR ZONAS DESDE TU BASE
+    // -----------------------
+    const zonasUnicas = [
+      ...new Set(
+        data
+          .map(p => (p["colonia/zona/barrio"] || "").toLowerCase())
+          .filter(z => z.length > 3)
+      )
+    ];
+
+    const zonasDetectadas = zonasUnicas.filter(z =>
+      texto.includes(z)
+    );
+
+    // -----------------------
+    // FILTRO
     // -----------------------
     const filtradas = data.filter(p => {
+
       const tipo = (p["tipo de propiedad"] || "").toLowerCase();
       const zona = (p["colonia/zona/barrio"] || "").toLowerCase();
 
@@ -61,33 +88,28 @@ export default async function handler(req, res) {
 
       let match = true;
 
-      // operación
+      // TIPO
+      if (tipoDetectado) {
+        match = match && tipo.includes(tipoDetectado);
+      }
+
+      // OPERACIÓN
       if (buscaVenta) match = match && p["propiedad en venta"] === true;
       if (buscaRenta) match = match && p["propiedad en renta"] === true;
 
-      // tipo
-      if (tipoDetectado) match = match && tipo.includes(tipoDetectado);
-
-      // zona (simple pero útil)
-      if (texto.length > 5) {
-        const palabras = texto.split(" ");
-        const coincideZona = palabras.some(palabra =>
-          palabra.length > 4 && zona.includes(palabra)
-        );
-
-        if (coincideZona) {
-          match = match && true;
+      // PRECIO
+      if (presupuesto) {
+        if (buscaVenta && precioVenta) {
+          match = match && precioVenta <= presupuesto * 1.2;
+        }
+        if (buscaRenta && precioRenta) {
+          match = match && precioRenta <= presupuesto * 1.2;
         }
       }
 
-      // presupuesto
-      if (presupuesto) {
-        if (buscaVenta && precioVenta) {
-          match = match && precioVenta <= presupuesto * 1.3;
-        }
-        if (buscaRenta && precioRenta) {
-          match = match && precioRenta <= presupuesto * 1.3;
-        }
+      // 🔥 ZONA (AHORA SÍ BIEN)
+      if (zonasDetectadas.length > 0) {
+        match = match && zonasDetectadas.includes(zona);
       }
 
       return match;
