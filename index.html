@@ -87,6 +87,10 @@ data.matches.forEach(p => {
       box-shadow:0 2px 8px rgba(0,0,0,0.1);
     ">
       <h3>${p["título de propiedad"] || "Sin título"}</h3>
+      
+      <p style="color:gray; font-size:14px;">
+  Código: ${p["id público (EB)"] || "N/A"}
+</p>
 
       <p><strong>Precio:</strong> 
         ${p["precio de renta"] || p["precio de venta"] || "N/A"}
