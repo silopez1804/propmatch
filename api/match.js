@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
 const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
-const SUPABASE_KEY = "TU_PUBLIC_KEY_AQUI";
+const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
 
 const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
 headers: {
