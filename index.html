@@ -31,16 +31,23 @@ h1, h3 {
     }
 
     button {
-      margin-top: 15px;
-      padding: 12px 20px;
-      border: none;
-      background: #ff7a00;
-      color: white;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
+  margin-top: 20px;
+  padding: 14px 28px;
+  border: none;
+  background: #ff5a00;   /* naranja branding */
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+ button:focus {
+  outline: none;
+  box-shadow: none;
+}   
+button:hover {
+  background: #e04e00;
+}
     #result {
       margin-top: 40px;
       display: grid;
@@ -107,7 +114,7 @@ h1, h3 {
 
 <body>
 <div style="max-width:900px; margin:0 auto; text-align:left;">
-  <img src="logo_ssprop.png" style="height:40px; margin-bottom:20px;">
+  <img src="logo_ssprop.png" style="height:55px; margin-bottom:15px;">
 </div>
 <h1>PropMatch</h1>
 <p>Pega tu chat de WhatsApp</p>
