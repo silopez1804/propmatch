@@ -16,9 +16,19 @@ export default async function handler(req, res) {
     const buscaCasa = texto.includes("casa");
     const buscaDepto = texto.includes("depa") || texto.includes("departamento");
 
-    const zonas = ["bosques", "lomas", "interlomas", "polanco", "condesa"];
-    const zonasDetectadas = zonas.filter(z => texto.includes(z));
-
+    const zonas = [
+  "bosques",
+  "lomas",
+  "interlomas",
+  "polanco",
+  "condesa",
+  "cuajimalpa",
+  "contadero",
+  "santa fe",
+  "pedregal",
+  "roma norte",
+  "roma"
+];
     let presupuesto = null;
 
     const matchNumeroGrande = texto.match(/\$?\s?([\d,]{6,})/);
@@ -82,7 +92,7 @@ export default async function handler(req, res) {
     });
 
     const filtradas = resultados
-      .filter(p => p.score >= 4)
+      .filter(p => p.score >= 5)
       .sort((a, b) => b.score - a.score);
 
     res.status(200).json({
