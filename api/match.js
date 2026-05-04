@@ -60,20 +60,58 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // -----------------------
-    // 🔥 DETECTAR ZONAS DESDE TU BASE
-    // -----------------------
-    const zonasUnicas = [
-      ...new Set(
-        data
-          .map(p => (p["colonia/zona/barrio"] || "").toLowerCase())
-          .filter(z => z.length > 3)
-      )
-    ];
+// -----------------------
+// ZONA INTELIGENTE 🔥
+// -----------------------
 
-    const zonasDetectadas = zonasUnicas.filter(z =>
-      texto.includes(z)
-    );
+const zonasMacro = [
+  "polanco",
+  "bosques",
+  "interlomas",
+  "santa fe",
+  "roma",
+  "condesa",
+  "tecamachalco"
+];
+
+// detectar zona macro
+let zonaMacroDetectada = zonasMacro.find(z => texto.includes(z));
+
+// detectar zonas exactas desde tu base
+const zonasUnicas = [
+  ...new Set(
+    data
+      .map(p => (p["colonia/zona/barrio"] || "").toLowerCase())
+      .filter(z => z.length > 3)
+  )
+];
+
+const zonasDetectadas = zonasUnicas.filter(z =>
+  texto.includes(z)
+);
+
+// -----------------------
+// FILTRO DE ZONA
+// -----------------------
+
+if (zonaMacroDetectada) {
+  // macro (ej: polanco)
+  match = match && zona.includes(zonaMacroDetectada);
+}
+
+// -----------------------
+// FILTRO DE ZONA FINAL
+// -----------------------
+
+// 1. si detecta macro (ej: polanco)
+if (zonaMacroDetectada) {
+  match = match && zona.includes(zonaMacroDetectada);
+}
+
+// 2. si detecta zona exacta de tu base
+if (zonasDetectadas.length > 0) {
+  match = match && zonasDetectadas.some(z => zona.includes(z));
+}
 
     // -----------------------
     // FILTRO
