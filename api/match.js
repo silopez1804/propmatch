@@ -1,41 +1,41 @@
 export default async function handler(req, res) {
   try {
     const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
+    const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD
+";
 
     const { chat } = req.body;
 
     if (!chat) {
       return res.status(400).json({ error: "No hay texto" });
     }
-// -----------------------
-// TIPO DE PROPIEDAD 🔥
-// -----------------------
-const tipoBuscado = {
-  casa: ["casa"],
-  departamento: ["depa", "departamento", "ph"],
-  oficina: ["oficina", "consultorio"],
-  local: ["local", "comercial"]
-};
 
-let tipoDetectado = null;
-
-for (const tipo in tipoBuscado) {
-  if (tipoBuscado[tipo].some(p => texto.includes(p))) {
-    tipoDetectado = tipo;
-    break;
-  }
     const texto = chat.toLowerCase();
 
     // -----------------------
-    // INTENCIÓN
+    // OPERACIÓN
     // -----------------------
     const buscaVenta = texto.includes("venta");
     const buscaRenta = texto.includes("renta");
 
-    const buscaCasa = texto.includes("casa");
-    const buscaDepto =
-      texto.includes("depa") || texto.includes("departamento");
+    // -----------------------
+    // TIPO DE PROPIEDAD 🔥
+    // -----------------------
+    const tipos = {
+      casa: ["casa"],
+      departamento: ["depa", "departamento", "ph"],
+      oficina: ["oficina", "consultorio"],
+      local: ["local", "comercial"]
+    };
+
+    let tipoDetectado = null;
+
+    for (const tipo in tipos) {
+      if (tipos[tipo].some(p => texto.includes(p))) {
+        tipoDetectado = tipo;
+        break;
+      }
+    }
 
     // -----------------------
     // PRESUPUESTO
@@ -95,12 +95,12 @@ for (const tipo in tipoBuscado) {
       if (buscaRenta && p["propiedad en renta"] === true) score += 2;
 
       // Tipo
-      if (tipoDetectado) {
-  if (tipo.includes(tipoDetectado)) {
-    score += 3;
-  }
+      if (tipoDetectado && tipo.includes(tipoDetectado)) {
+        score += 3;
+      }
+
       // -----------------------
-      // ZONA INTELIGENTE 🔥
+      // ZONA INTELIGENTE
       // -----------------------
       const palabrasFiltradas = texto
         .replace(/[^\w\s]/g, "")
@@ -110,8 +110,10 @@ for (const tipo in tipoBuscado) {
           ![
             "busco",
             "casa",
-            "depto",
+            "depa",
             "departamento",
+            "oficina",
+            "local",
             "venta",
             "renta",
             "recamaras",
