@@ -1,55 +1,69 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>PropMatch</title>
+
   <style>
     body {
       font-family: Arial;
-      background: #f7f7f7;
       padding: 40px;
+      background: #f7f7f7;
       text-align: center;
     }
+
     textarea {
       width: 90%;
-      height: 200px;
+      height: 150px;
       padding: 10px;
-      margin-top: 20px;
       border-radius: 10px;
       border: 1px solid #ccc;
     }
+
     button {
       margin-top: 20px;
-      padding: 15px 25px;
+      padding: 12px 25px;
       border: none;
-      border-radius: 10px;
       background: black;
       color: white;
-      font-size: 16px;
+      border-radius: 10px;
       cursor: pointer;
     }
+
     #result {
       margin-top: 30px;
       text-align: left;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
     }
   </style>
 </head>
+
 <body>
 
-  <h1>PropMatch</h1>
-  <p>Pega tu chat de WhatsApp</p>
+<h1>PropMatch</h1>
+<p>Pega tu chat de WhatsApp</p>
 
-  <textarea id="chat"></textarea>
+<textarea id="chat"></textarea>
+<br>
+<button id="btn">Buscar Matches</button>
 
-  <br>
-  <button onclick="buscar()">Buscar Matches</button>
+<div id="result"></div>
 
-  <div id="result"></div>
+<script>
+  document.getElementById("btn").addEventListener("click", async () => {
 
-  <script>
-    async function buscar() {
-      const chat = document.getElementById("chat").value;
+    const chat = document.getElementById("chat").value;
 
+    if (!chat) {
+      alert("Pega un texto primero");
+      return;
+    }
+
+    document.getElementById("result").innerHTML = "Buscando...";
+
+    try {
       const res = await fetch("/api/match", {
         method: "POST",
         headers: {
@@ -62,8 +76,13 @@
 
       document.getElementById("result").innerHTML =
         "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+
+    } catch (err) {
+      document.getElementById("result").innerHTML = "Error conectando";
+      console.error(err);
     }
-  </script>
+  });
+</script>
 
 </body>
 </html>
