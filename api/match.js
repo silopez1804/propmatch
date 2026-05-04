@@ -171,6 +171,9 @@ export default async function handler(req, res) {
       // 🔥 FILTRO POR CARACTERÍSTICAS (YA CORRECTO)
       if (recamaras !== null) {
         const recProp = Number(p["recámaras"]) || 0;
+        if (recamaras <= 2) {
+        match = match && recProp === recamaras;
+        } else {
         match = match && recProp >= recamaras;
       }
 
