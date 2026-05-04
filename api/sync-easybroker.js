@@ -4,10 +4,29 @@ export default async function handler(req, res) {
     const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
     const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
 
-    const ebResponse = await fetch("https://api.easybroker.com/v1/properties", {
-      headers: {
-        "X-Authorization": EASYBROKER_KEY
-      }
+    let allProperties = [];
+let page = 1;
+let hasMore = true;
+
+while (hasMore) {
+  const ebResponse = await fetch(`https://api.easybroker.com/v1/properties?page=${page}`, {
+    headers: {
+      "X-Authorization": EASYBROKER_KEY
+    }
+  });
+
+  const ebData = await ebResponse.json();
+
+  const propiedades = allProperties;
+
+  allProperties = allProperties.concat(propiedades);
+
+  if (propiedades.length < 20) {
+    hasMore = false;
+  } else {
+    page++;
+  }
+}
     });
 
     const ebData = await ebResponse.json();
