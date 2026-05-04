@@ -1,57 +1,54 @@
 export default async function handler(req, res) {
 
-  // ===== CORS =====
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
-  }
-
   try {
-
     const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
     const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
 
     const { chat } = req.body;
-    const input = (chat || "").toLowerCase();
 
-    // ===== PRESUPUESTO =====
-    const presupuestoMatch = input.match(/\$?([\d,]+)/);
-    const presupuesto = presupuestoMatch
-      ? parseInt(presupuestoMatch[1].replace(/,/g, ""))
-      : null;
+    if (!chat) {
+      return res.status(400).json({ error: "No hay texto" });
+    }
 
-    // ===== RECÁMARAS =====
-    const recamarasMatch = input.match(/(\d+)\s*(rec|recámara|recámaras)/);
-    const recamaras = recamarasMatch ? parseInt(recamarasMatch[1]) : null;
+    const texto = chat.toLowerCase();
 
-    // ===== ZONA =====
-    let zona = null;
-    const zonas = ["lomas", "interlomas", "bosques", "tecama", "cuajimalpa", "santa fe"];
-    zonas.forEach(z => {
-      if (input.includes(z)) zona = z;
-    });
+    // -----------------------
+    // DETECCIÓN DE INTENCIÓN
+    // -----------------------
 
-    // ===== TIPO DE PROPIEDAD =====
-    let tipo = null;
-    if (/depa|departamento/i.test(input)) tipo = "departamento";
-    if (/casa/i.test(input)) tipo = "casa";
-    if (/oficina/i.test(input)) tipo = "oficina";
-    if (/local/i.test(input)) tipo = "local";
-    if (/terreno/i.test(input)) tipo = "terreno";
+    const buscaVenta = texto.includes("venta");
+    const buscaRenta = texto.includes("renta");
 
-    // ===== OPERACIÓN =====
-    let operacion = null;
-    if (/renta|rentar|alquilar/i.test(input)) operacion = "renta";
-    if (/comprar|compra|venta|vender/i.test(input)) operacion = "venta";
+    const buscaCasa = texto.includes("casa");
+    const buscaDepto =
+      texto.includes("depa") ||
+      texto.includes("departamento");
 
-    // ===== TRAER DATOS =====
+    // zonas (puedes ampliar esto luego)
+    const zonas = ["bosques", "lomas", "interlomas", "polanco", "condesa"];
+
+    const zonasDetectadas = zonas.filter(z => texto.includes(z));
+
+    // -----------------------
+    // PRESUPUESTO (simple)
+    // -----------------------
+
+    let presupuesto = null;
+
+    const matchMillones = texto.match(/(\d+)\s?mill/);
+    if (matchMillones) {
+      presupuesto = parseInt(matchMillones[1]) * 1000000;
+    }
+
+    const matchMiles = texto.match(/(\d{2,3})\s?mil/);
+    if (matchMiles && !presupuesto) {
+      presupuesto = parseInt(matchMiles[1]) * 1000;
+    }
+
+    // -----------------------
+    // TRAER PROPIEDADES
+    // -----------------------
+
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -61,39 +58,78 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // ===== FILTRO =====
-    const matches = data.filter(p => {
+    // -----------------------
+    // FILTRADO INTELIGENTE
+    // -----------------------
 
-      const precio = parseInt((p["precio de renta"] || "").toString().replace(/,/g, "")) || 0;
-      const recs = p["recámaras"] || 0;
-      const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
-      const tipoProp = (p["tipo de propiedad"] || "").toLowerCase();
+    const filtradas = data.filter(p => {
 
-      const esRenta = p["propiedad en renta"];
-      const esVenta = p["propiedad en venta"];
+      const tipo = (p["tipo de propiedad"] || "").toLowerCase();
+      const zona = (p["colonia/zona/barrio"] || "").toLowerCase();
 
-      return (
-        (!presupuesto || precio <= presupuesto) &&
-        (!recamaras || recs >= recamaras) &&
-        (!zona || zonaProp.includes(zona)) &&
-        (!tipo || tipoProp.includes(tipo)) &&
-        (!operacion ||
-          (operacion === "renta" && esRenta === true) ||
-          (operacion === "venta" && esVenta === true)
-        )
-      );
+      let match = true;
+
+      // Venta / renta
+      if (buscaVenta) {
+        match = match && p["propiedad en venta"] === true;
+      }
+
+      if (buscaRenta) {
+        match = match && p["propiedad en renta"] === true;
+      }
+
+      // Tipo
+      if (buscaCasa) {
+        match = match && tipo.includes("casa");
+      }
+
+      if (buscaDepto) {
+        match = match && (
+          tipo.includes("departamento") ||
+          tipo.includes("depto")
+        );
+      }
+
+      // Zona
+      if (zonasDetectadas.length > 0) {
+        const coincideZona = zonasDetectadas.some(z =>
+          zona.includes(z)
+        );
+        match = match && coincideZona;
+      }
+
+      // Presupuesto
+      if (presupuesto) {
+
+        if (buscaVenta) {
+          const precioVenta = parseFloat(p["precio de venta"] || 0);
+          if (precioVenta) {
+            match = match && precioVenta <= presupuesto * 1.2;
+          }
+        }
+
+        if (buscaRenta) {
+          const precioRenta = parseFloat(p["precio de renta"] || 0);
+          if (precioRenta) {
+            match = match && precioRenta <= presupuesto * 1.2;
+          }
+        }
+      }
+
+      return match;
     });
 
-    return res.status(200).json({
-      encontrados: matches.length,
-      matches: matches.slice(0, 10)
+    // -----------------------
+    // RESPUESTA
+    // -----------------------
+
+    res.status(200).json({
+      encontrados: filtradas.length,
+      matches: filtradas.slice(0, 20)
     });
 
   } catch (error) {
-    console.error("ERROR:", error);
-    return res.status(500).json({
-      error: "Error interno",
-      detail: error.message
-    });
+    console.error(error);
+    res.status(500).json({ error: "Error en servidor" });
   }
 }
