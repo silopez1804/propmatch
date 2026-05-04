@@ -20,7 +20,7 @@ export default async function handler(req, res) {
       .trim();
 
     // -----------------------
-    // TIPO
+    // DETECTAR TIPO
     // -----------------------
     let tipoDetectado = null;
 
@@ -31,14 +31,6 @@ export default async function handler(req, res) {
       texto.includes("ph") ||
       texto.includes("garden")
     ) tipoDetectado = "departamento";
-    else if (texto.includes("oficina") || texto.includes("consultorio"))
-      tipoDetectado = "oficina";
-    else if (texto.includes("local"))
-      tipoDetectado = "local";
-    else if (texto.includes("terreno"))
-      tipoDetectado = "terreno";
-    else if (texto.includes("bodega"))
-      tipoDetectado = "bodega";
 
     // -----------------------
     // OPERACIÓN
@@ -55,27 +47,39 @@ export default async function handler(req, res) {
     if (matchPrecio) {
       presupuesto = parseInt(matchPrecio[1].replace(/,/g, ""));
     }
-   // -----------------------
-   // CARACTERÍSTICAS 🔥
-   // -----------------------
-   let recamaras = null;
-   let banos = null;
-   let estacionamientos = null;
 
-   // recámaras
-   const recMatch = texto.match(/(\d+)\s?(rec|recamaras|recámara)/);
-   if (recMatch) recamaras = parseInt(recMatch[1]);
-
-  // baños
-  const banMatch = texto.match(/(\d+)\s?(ba|baños|baño)/);
-  if (banMatch) banos = parseInt(banMatch[1]);
-
-  // estacionamientos
-  const estMatch = texto.match(/(\d+)\s?(estac|auto|cajones)/);
-  if (estMatch) estacionamientos = parseInt(estMatch[1]);
-    
     // -----------------------
-    // FETCH
+    // 🔥 DETECTAR RECÁMARAS
+    // -----------------------
+    let recamaras = null;
+
+    const recMatch = texto.match(/(\d+)\s*(rec|recs|recamara|recamaras|recámara|recámara|habitacion|habitaciones)/);
+    if (recMatch) {
+      recamaras = parseInt(recMatch[1]);
+    }
+
+    // -----------------------
+    // 🔥 DETECTAR BAÑOS
+    // -----------------------
+    let banos = null;
+
+    const banMatch = texto.match(/(\d+)\s*(ba|baño|baños)/);
+    if (banMatch) {
+      banos = parseInt(banMatch[1]);
+    }
+
+    // -----------------------
+    // 🔥 DETECTAR ESTACIONAMIENTOS
+    // -----------------------
+    let estacionamientos = null;
+
+    const estMatch = texto.match(/(\d+)\s*(estac|auto|cajones)/);
+    if (estMatch) {
+      estacionamientos = parseInt(estMatch[1]);
+    }
+
+    // -----------------------
+    // FETCH DATA
     // -----------------------
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
@@ -84,14 +88,10 @@ export default async function handler(req, res) {
       }
     });
 
-    if (!response.ok) {
-      return res.status(500).json({ error: "Error en Supabase" });
-    }
-
     const data = await response.json();
 
     // -----------------------
-    // 🔥 ZONAS DESDE TU BASE
+    // ZONAS DESDE BASE
     // -----------------------
     const zonasUnicas = [
       ...new Set(
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
     );
 
     // -----------------------
-    // 🔥 ZONAS MACRO
+    // ZONAS MACRO
     // -----------------------
     const zonasMacro = [
       "polanco",
@@ -139,23 +139,6 @@ export default async function handler(req, res) {
       );
 
       let match = true;
-     
-    // FILTRO POR CARACTERÍSTICAS
-
-    if (recamaras !== null) {
-    const recProp = Number(p["recámaras"]) || 0;
-    match = match && recProp >= recamaras;
- }
-
-    if (banos !== null) {
-    const banProp = Number(p["baños"]) || 0;
-    match = match && banProp >= banos;
- }
-
-   if (estacionamientos !== null) {
-   const estProp = Number(p["estacionamientos"]) || 0;
-   match = match && estProp >= estacionamientos;
- }
 
       // TIPO
       if (tipoDetectado) {
@@ -176,33 +159,50 @@ export default async function handler(req, res) {
         }
       }
 
-      // -----------------------
-      // ZONA (🔥 CLAVE)
-      // -----------------------
-
-      // 1. macro (ej: polanco)
+      // ZONA
       if (zonaMacroDetectada) {
         match = match && zona.includes(zonaMacroDetectada);
       }
 
-      // 2. exacta (desde tu base)
       if (zonasDetectadas.length > 0) {
         match = match && zonasDetectadas.some(z => zona.includes(z));
+      }
+
+      // 🔥 FILTRO POR CARACTERÍSTICAS (YA CORRECTO)
+      if (recamaras !== null) {
+        const recProp = Number(p["recámaras"]) || 0;
+        match = match && recProp >= recamaras;
+      }
+
+      if (banos !== null) {
+        const banProp = Number(p["baños"]) || 0;
+        match = match && banProp >= banos;
+      }
+
+      if (estacionamientos !== null) {
+        const estProp = Number(p["estacionamientos"]) || 0;
+        match = match && estProp >= estacionamientos;
       }
 
       return match;
     });
 
     // -----------------------
-    // RESPUESTA
+    // ORDENAR
     // -----------------------
+    filtradas.sort((a, b) => {
+      const precioA = parseFloat((a["precio de venta"] || a["precio de renta"] || 0));
+      const precioB = parseFloat((b["precio de venta"] || b["precio de renta"] || 0));
+      return precioA - precioB;
+    });
+
     res.status(200).json({
       encontrados: filtradas.length,
       matches: filtradas.slice(0, 20)
     });
 
   } catch (error) {
-    console.error("ERROR:", error);
+    console.error(error);
     res.status(500).json({ error: "Error en servidor" });
   }
 }
