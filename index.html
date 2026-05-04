@@ -74,8 +74,38 @@
 
       const data = await res.json();
 
-      document.getElementById("result").innerHTML =
-        "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+      let html = `<h2>${data.encontrados} resultados</h2>`;
+
+data.matches.forEach(p => {
+
+  html += `
+    <div style="
+      background:white;
+      padding:15px;
+      margin:15px 0;
+      border-radius:10px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    ">
+      <h3>${p["título de propiedad"] || "Sin título"}</h3>
+
+      <p><strong>Precio:</strong> 
+        ${p["precio de renta"] || p["precio de venta"] || "N/A"}
+      </p>
+
+      <p><strong>Zona:</strong> 
+        ${p["colonia/zona/barrio"] || "N/A"}
+      </p>
+
+      <p>
+        🛏 ${p["recámaras"] || 0} | 
+        🛁 ${p["baños"] || 0} | 
+        🚗 ${p["estacionamientos"] || 0}
+      </p>
+    </div>
+  `;
+});
+
+document.getElementById("result").innerHTML = html;
 
     } catch (err) {
       document.getElementById("result").innerHTML = "Error conectando";
