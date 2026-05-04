@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
 
-  // 👉 Permitir CORS (esto evita "error conectando")
+  // ===== CORS =====
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -21,27 +21,37 @@ export default async function handler(req, res) {
     const { chat } = req.body;
     const input = (chat || "").toLowerCase();
 
-    // ===== EXTRAER DATOS =====
+    // ===== PRESUPUESTO =====
     const presupuestoMatch = input.match(/\$?([\d,]+)/);
     const presupuesto = presupuestoMatch
       ? parseInt(presupuestoMatch[1].replace(/,/g, ""))
       : null;
 
+    // ===== RECÁMARAS =====
     const recamarasMatch = input.match(/(\d+)\s*(rec|recámara|recámaras)/);
     const recamaras = recamarasMatch ? parseInt(recamarasMatch[1]) : null;
 
+    // ===== ZONA =====
     let zona = null;
     const zonas = ["lomas", "interlomas", "bosques", "tecama", "cuajimalpa", "santa fe"];
     zonas.forEach(z => {
       if (input.includes(z)) zona = z;
     });
 
+    // ===== TIPO DE PROPIEDAD =====
     let tipo = null;
     if (/depa|departamento/i.test(input)) tipo = "departamento";
     if (/casa/i.test(input)) tipo = "casa";
     if (/oficina/i.test(input)) tipo = "oficina";
+    if (/local/i.test(input)) tipo = "local";
+    if (/terreno/i.test(input)) tipo = "terreno";
 
-    // ===== FETCH A SUPABASE =====
+    // ===== OPERACIÓN =====
+    let operacion = null;
+    if (/renta|rentar|alquilar/i.test(input)) operacion = "renta";
+    if (/comprar|compra|venta|vender/i.test(input)) operacion = "venta";
+
+    // ===== TRAER DATOS =====
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -59,11 +69,18 @@ export default async function handler(req, res) {
       const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
       const tipoProp = (p["tipo de propiedad"] || "").toLowerCase();
 
+      const esRenta = p["propiedad en renta"];
+      const esVenta = p["propiedad en venta"];
+
       return (
         (!presupuesto || precio <= presupuesto) &&
         (!recamaras || recs >= recamaras) &&
         (!zona || zonaProp.includes(zona)) &&
-        (!tipo || tipoProp.includes(tipo))
+        (!tipo || tipoProp.includes(tipo)) &&
+        (!operacion ||
+          (operacion === "renta" && esRenta === true) ||
+          (operacion === "venta" && esVenta === true)
+        )
       );
     });
 
@@ -74,6 +91,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("ERROR:", error);
-    return res.status(500).json({ error: "Error interno", detail: error.message });
+    return res.status(500).json({
+      error: "Error interno",
+      detail: error.message
+    });
   }
 }
