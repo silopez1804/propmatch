@@ -17,29 +17,35 @@ h1, h3 {
   font-family: 'Playfair Display', serif;
 }
     h1 {
-      margin-bottom: 10px;
-    }
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
 
     textarea {
-      width: 100%;
-      max-width: 600px;
-      height: 120px;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid #ddd;
-      font-size: 14px;
-    }
+  width: 90%;
+  max-width: 800px;
+  height: 160px;
+  padding: 15px;
+  border-radius: 14px;
+  border: none;
+  background: #f2f2f2;
+  font-size: 15px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+}
 
     button {
-  margin-top: 20px;
-  padding: 14px 28px;
+  margin-top: 25px;
+  padding: 16px 34px;
   border: none;
-  background: #ff5a00;   /* naranja branding */
+  background: #ff5a00;
   color: white;
-  border-radius: 12px;
+  border-radius: 14px;
   font-weight: 600;
+  font-size: 16px;
   cursor: pointer;
   outline: none;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
 }
  button:focus {
   outline: none;
@@ -47,6 +53,8 @@ h1, h3 {
 }   
 button:hover {
   background: #e04e00;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
     #result {
       margin-top: 40px;
