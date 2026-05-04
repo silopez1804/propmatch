@@ -55,7 +55,25 @@ export default async function handler(req, res) {
     if (matchPrecio) {
       presupuesto = parseInt(matchPrecio[1].replace(/,/g, ""));
     }
+   // -----------------------
+   // CARACTERÍSTICAS 🔥
+   // -----------------------
+   let recamaras = null;
+   let banos = null;
+   let estacionamientos = null;
 
+   // recámaras
+   const recMatch = texto.match(/(\d+)\s?(rec|recamaras|recámara)/);
+   if (recMatch) recamaras = parseInt(recMatch[1]);
+
+  // baños
+  const banMatch = texto.match(/(\d+)\s?(ba|baños|baño)/);
+  if (banMatch) banos = parseInt(banMatch[1]);
+
+  // estacionamientos
+  const estMatch = texto.match(/(\d+)\s?(estac|auto|cajones)/);
+  if (estMatch) estacionamientos = parseInt(estMatch[1]);
+    
     // -----------------------
     // FETCH
     // -----------------------
@@ -121,6 +139,20 @@ export default async function handler(req, res) {
       );
 
       let match = true;
+     
+      // FILTRO POR CARACTERÍSTICAS
+
+    if (recamaras && p["recámaras"]) {
+    match = match && p["recámaras"] >= recamaras;
+}
+
+   if (banos && p["baños"]) {
+   match = match && p["baños"] >= banos;
+}
+
+   if (estacionamientos && p["estacionamientos"]) {
+   match = match && p["estacionamientos"] >= estacionamientos;
+}
 
       // TIPO
       if (tipoDetectado) {
