@@ -8,7 +8,23 @@ export default async function handler(req, res) {
     if (!chat) {
       return res.status(400).json({ error: "No hay texto" });
     }
+// -----------------------
+// TIPO DE PROPIEDAD 🔥
+// -----------------------
+const tipoBuscado = {
+  casa: ["casa"],
+  departamento: ["depa", "departamento", "ph"],
+  oficina: ["oficina", "consultorio"],
+  local: ["local", "comercial"]
+};
 
+let tipoDetectado = null;
+
+for (const tipo in tipoBuscado) {
+  if (tipoBuscado[tipo].some(p => texto.includes(p))) {
+    tipoDetectado = tipo;
+    break;
+  }
     const texto = chat.toLowerCase();
 
     // -----------------------
@@ -79,9 +95,10 @@ export default async function handler(req, res) {
       if (buscaRenta && p["propiedad en renta"] === true) score += 2;
 
       // Tipo
-      if (buscaCasa && tipo.includes("casa")) score += 2;
-      if (buscaDepto && tipo.includes("departamento")) score += 2;
-
+      if (tipoDetectado) {
+  if (tipo.includes(tipoDetectado)) {
+    score += 3;
+  }
       // -----------------------
       // ZONA INTELIGENTE 🔥
       // -----------------------
