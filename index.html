@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PropMatch</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+:root {
+  --bg:#f4f1eb;--surface:#fff;--surface2:#edeae2;--border:#d8d3c8;
+  --ink:#1a1714;--ink2:#6b6560;--gold:#c4860a;--gold-light:#fdf3dc;
+  --green:#1a6640;--green-light:#d4ede0;--red:#a02020;--red-light:#f5d8d8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+.top-stripe{height:4px;background:linear-gradient(90deg,var(--gold),#8B5E04 50%,var(--ink));}
+.container{max-width:800px;margin:0 auto;padding:32px 18px 80px;}
+.logo{font-size:2rem;font-weight:800;letter-spacing:-0.04em;margin-bottom:4px;}
+.logo em{font-style:normal;color:var(--gold);}
+.subtitle{font-size:0.82rem;color:var(--ink2);margin-bottom:28px;}
+.inv-bar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:18px;font-size:0.85rem;}
+.inv-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.inv-text{color:var(--ink2);flex:1;}
+.inv-text strong{color:var(--ink);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:18px;}
+.card-label{font-size:0.67rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink2);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.card-label::before{content:'';width:3px;height:13px;background:var(--gold);border-radius:2px;display:inline-block;}
+textarea{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--ink);font-family:'Outfit',sans-serif;font-size:0.88rem;outline:none;resize:vertical;min-height:150px;line-height:1.6;transition:border-color 0.2s;}
+textarea:focus{border-color:var(--gold);background:#fff;}
+textarea::placeholder{color:#b0a898;}
+.hint{font-size:0.76rem;color:var(--ink2);margin-top:8px;line-height:1.5;}
+.run-wrap{display:flex;align-items:center;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
+.btn-run{font-family:'Outfit',sans-serif;font-weight:800;font-size:0.95rem;padding:14px 36px;border-radius:10px;border:none;cursor:pointer;background:var(--ink);color:#fff;transition:all 0.18s;}
+.btn-run:hover:not(:disabled){background:var(--gold);transform:translateY(-2px);box-shadow:0 6px 20px rgba(196,134,10,0.25);}
+.btn-run:disabled{background:var(--border);color:var(--ink2);cursor:not-allowed;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:0.73rem;font-weight:600;}
+.pill-loading{background:var(--gold-light);color:var(--gold);}
+.pill-err{background:var(--red-light);color:var(--red);}
+.spin{width:13px;height:13px;border:2px solid rgba(196,134,10,0.3);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+hr{border:none;border-top:1px solid var(--border);margin:22px 0;}
+#results-section{display:none;}
+.results-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.results-title{font-size:1.2rem;font-weight:800;letter-spacing:-0.02em;}
+.results-title span{color:var(--gold);}
+.btn-sm{font-family:'Outfit',sans-serif;font-weight:600;font-size:0.78rem;padding:7px 16px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--ink);cursor:pointer;}
+.btn-sm:hover{border-color:var(--gold);}
+.summary-box{background:var(--gold-light);border:1px solid #e8c878;border-radius:10px;padding:14px 18px;font-size:0.88rem;line-height:1.7;color:var(--ink);margin-bottom:20px;}
+.match-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;animation:fadeUp 0.3s ease both;transition:box-shadow 0.2s,transform 0.2s;}
+.match-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.09);transform:translateY(-2px);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.match-top{display:flex;align-items:stretch;border-bottom:1px solid var(--border);}
+.match-img{width:100px;flex-shrink:0;object-fit:cover;background:var(--surface2);}
+.match-img-ph{width:100px;flex-shrink:0;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:2rem;}
+.match-header-info{flex:1;padding:14px 16px;min-width:0;}
+.match-request{font-size:0.67rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink2);margin-bottom:4px;}
+.match-title{font-weight:700;font-size:0.95rem;line-height:1.3;color:var(--ink);}
+.match-score-box{padding:14px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface2);flex-shrink:0;min-width:60px;}
+.score-num{font-family:'JetBrains Mono',monospace;font-size:1.35rem;font-weight:500;line-height:1;display:block;}
+.score-high{color:var(--green);}
+.score-mid{color:var(--gold);}
+.score-low{color:var(--ink2);}
+.score-label{font-size:0.57rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink2);font-weight:600;margin-top:3px;}
+.match-body{padding:14px 18px 16px;}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;}
+.tag{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:2px 9px;font-size:0.73rem;color:var(--ink2);font-weight:500;}
+.tag-gold{background:var(--gold-light);border-color:#e8c878;color:#8B5E04;}
+.tag-green{background:var(--green-light);border-color:#a8d8be;color:var(--green);}
+.match-reason{font-size:0.85rem;line-height:1.65;color:var(--ink2);border-top:1px solid var(--border);padding-top:12px;}
+.match-link{display:inline-block;margin-top:8px;font-size:0.78rem;color:var(--gold);font-weight:700;text-decoration:none;}
+.match-link:hover{text-decoration:underline;}
+.no-match{text-align:center;padding:50px 20px;color:var(--ink2);}
+@media(max-width:500px){.match-img,.match-img-ph{width:72px;}.match-score-box{min-width:50px;padding:12px 10px;}.score-num{font-size:1.1rem;}}
+</style>
+</head>
+<body>
+<div class="top-stripe"></div>
+<div class="container">
+  <div class="logo">Prop<em>Match</em></div>
+  <div class="subtitle">Cruza tu inventario de Easy Broker con búsquedas de WhatsApp</div>
+
+  <div class="inv-bar">
+    <div class="inv-dot"></div>
+    <div class="inv-text"><strong>6 propiedades</strong> cargadas desde Easy Broker</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Pegar chat de WhatsApp</div>
+    <textarea id="chatInput" placeholder="Exporta el chat: abre el grupo → ⋮ → Más → Exportar chat → Sin archivos. Luego pega el texto aquí...
+
+Ejemplo:
+[10/04/25] Juan: Busco casa en Lomas, 3 rec, max $20M venta
+[10/04/25] María: Cliente necesita depa CDMX 2 rec renta $40k"></textarea>
+    <div class="hint">💡 La IA detecta automáticamente quién busca y qué — solo pega el texto tal cual.</div>
+  </div>
+
+  <div class="run-wrap">
+    <button class="btn-run" id="btnRun" onclick="runMatch()">⚡ Buscar Matches</button>
+    <div id="run-status"></div>
+  </div>
+
+  <hr>
+
+  <div id="results-section">
+    <div class="results-top">
+      <div class="results-title">Matches <span id="match-count"></span></div>
+      <button class="btn-sm" onclick="clearResults()">Nueva búsqueda</button>
+    </div>
+    <div class="summary-box" id="summary-box"></div>
+    <div id="results-list"></div>
+  </div>
+</div>
+
+<script>
+const PROPS = [
+  {id:"EB-VX1821",tipo:"Departamento",titulo:"Departamento en Hacienda de las Palmas, Fuente de las Lomas",rec:4,banos:4,m2:356,colonia:"Hacienda de las Palmas",ciudad:"Huixquilucan",operaciones:[{tipo:"Venta",precio:"$18,000,000",moneda:"MXN"}],estacionamientos:3,imagen:"https://assets.easybroker.com/property_images/5961821/105044575/EB-VX1821.jpeg?rasterize=true&version=1777328451",url:"https://www.easybroker.com/mx/propiedades/eb-vx1821"},
+  {id:"EB-VX1350",tipo:"Casa",titulo:"Casa en Venta en la Herradura",rec:5,banos:5,m2:650,m2_terreno:541,colonia:"La Herradura",ciudad:"Huixquilucan",operaciones:[{tipo:"Venta",precio:"$18,000,000",moneda:"MXN"}],estacionamientos:4,imagen:"https://assets.easybroker.com/property_images/5961350/105034277/EB-VX1350.JPG?rasterize=true&version=1777318886",url:"https://www.easybroker.com/mx/propiedades/eb-vx1350"},
+  {id:"EB-VW8248",tipo:"Casa",titulo:"Casa en Venta en Bosques de las Lomas",rec:3,banos:3,m2:550,m2_terreno:1050,colonia:"Bosque de las Lomas",ciudad:"Miguel Hidalgo",operaciones:[{tipo:"Venta",precio:"$28,500,000",moneda:"MXN"}],estacionamientos:4,imagen:"https://assets.easybroker.com/property_images/5958248/104967470/EB-VW8248.png?rasterize=true&version=1777077770",url:"https://www.easybroker.com/mx/propiedades/eb-vw8248"},
+  {id:"EB-UO7694",tipo:"Departamento",titulo:"Departamento en Renta en la Colonia Nápoles",rec:2,banos:2,m2:220,colonia:"Nápoles",ciudad:"Benito Juárez",operaciones:[{tipo:"Renta",precio:"$45,000",moneda:"MXN"}],estacionamientos:2,imagen:"https://assets.easybroker.com/property_images/5617694/97825668/EB-UO7694.jpg?rasterize=true&version=1761850808",url:"https://www.easybroker.com/mx/propiedades/eb-uo7694"},
+  {id:"EB-RF2925",tipo:"Casa",titulo:"Casa en Venta en Las Manzanas, Jilotzingo",rec:3,banos:3,m2:320,m2_terreno:2791,colonia:"Las Manzanas",ciudad:"Jilotzingo",operaciones:[{tipo:"Venta",precio:"$5,250,000",moneda:"MXN"}],estacionamientos:12,imagen:"https://assets.easybroker.com/property_images/4742925/80181467/EB-RF2925.jpg?rasterize=true&version=1726605986",url:"https://www.easybroker.com/mx/propiedades/eb-rf2925"},
+  {id:"EB-VT7796",tipo:"Departamento",titulo:"Departamento en Venta en Jesús del Monte",rec:2,banos:2,m2:174,colonia:"Jesús del Monte",ciudad:"Huixquilucan",operaciones:[{tipo:"Venta",precio:"$5,600,000",moneda:"MXN"}],estacionamientos:2,imagen:"https://assets.easybroker.com/property_images/5927796/104382232/EB-VT7796.jpeg?rasterize=true&version=1776110703",url:"https://www.easybroker.com/mx/propiedades/eb-vt7796"}
+];
+
+async function runMatch() {
+  const chat = document.getElementById('chatInput').value.trim();
+  if (!chat) { alert('Pega el texto del chat primero.'); return; }
+  const btn = document.getElementById('btnRun');
+  const statusEl = document.getElementById('run-status');
+  btn.disabled = true; btn.textContent = '⏳ Analizando...';
+  statusEl.innerHTML = '<span class="pill pill-loading"><span class="spin"></span> Buscando matches...</span>';
+
+  const propSummary = PROPS.map((p,i) => {
+    const ops = p.operaciones.map(o=>`${o.tipo} ${o.precio} ${o.moneda}`).join(' / ');
+    return `[${i}] ${p.id} | ${p.tipo} | ${p.rec}rec ${p.banos}baños | ${p.m2}m² | ${p.colonia}, ${p.ciudad} | ${ops}`;
+  }).join('\n');
+
+  const prompt = `Eres experto en bienes raíces en México. Analiza el chat de WhatsApp y encuentra qué propiedades del inventario hacen match con las búsquedas.
+
+INVENTARIO:
+${propSummary}
+
+CHAT:
+${chat}
+
+Identifica mensajes donde alguien BUSCA (no ofrece). Para cada búsqueda, elige la mejor propiedad. Evalúa: zona, precio, tipo, recámaras, operación.
+
+Responde SOLO con JSON (sin texto extra, sin backticks):
+{"resumen":"2-3 oraciones sobre búsquedas y matches","matches":[{"busqueda":"qué busca","corredor":"nombre si aparece","score":85,"prop_index":0,"razon":"por qué hace match","operacion":"Venta o Renta"}]}`;
+
+  try {
+    const res = await fetch('/api/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    const raw = (data.content||[]).map(b=>b.text||'').join('');
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    renderResults(parsed);
+    statusEl.innerHTML = '';
+  } catch(err) {
+    statusEl.innerHTML = '<span class="pill pill-err">✗ Error al analizar. Intenta de nuevo.</span>';
+  }
+  btn.disabled = false; btn.textContent = '⚡ Buscar Matches';
+}
+
+function renderResults(data) {
+  const section = document.getElementById('results-section');
+  const list = document.getElementById('results-list');
+  document.getElementById('match-count').textContent = `encontrados: ${data.matches?.length||0}`;
+  document.getElementById('summary-box').textContent = data.resumen||'';
+  section.style.display = 'block';
+  list.innerHTML = '';
+
+  if (!data.matches?.length) {
+    list.innerHTML = '<div class="no-match"><div style="font-size:2.5rem;margin-bottom:12px">🔍</div><div style="font-weight:700;margin-bottom:6px">Sin matches por ahora</div><div style="font-size:0.87rem">No encontré propiedades que coincidan con las búsquedas del chat.</div></div>';
+    return;
+  }
+
+  [...data.matches].sort((a,b)=>(b.score||0)-(a.score||0)).forEach((m,i)=>{
+    const p = PROPS[m.prop_index] ?? PROPS[0];
+    const sc = m.score>=80?'score-high':m.score>=55?'score-mid':'score-low';
+    const card = document.createElement('div');
+    card.className = 'match-card';
+    card.style.animationDelay = `${i*0.06}s`;
+    card.innerHTML = `
+      <div class="match-top">
+        ${p.imagen?`<img class="match-img" src="${p.imagen}" onerror="this.outerHTML='<div class=\\'match-img-ph\\'>🏠</div>'">`:'<div class="match-img-ph">🏠</div>'}
+        <div class="match-header-info">
+          <div class="match-request">🔎 ${m.busqueda||''}${m.corredor?' — '+m.corredor:''}</div>
+          <div class="match-title">${p.titulo}</div>
+        </div>
+        <div class="match-score-box">
+          <span class="score-num ${sc}">${m.score}</span>
+          <span class="score-label">match</span>
+        </div>
+      </div>
+      <div class="match-body">
+        <div class="tags">
+          ${m.operacion?`<span class="tag tag-green">${m.operacion}</span>`:''}
+          ${p.operaciones[0]?`<span class="tag tag-gold">${p.operaciones[0].precio} ${p.operaciones[0].moneda}</span>`:''}
+          <span class="tag">📍 ${p.colonia}, ${p.ciudad}</span>
+          <span class="tag">🛏 ${p.rec} rec</span>
+          <span class="tag">📐 ${p.m2}m²</span>
+          <span class="tag">${p.id}</span>
+        </div>
+        <div class="match-reason">${m.razon||''}${p.url?`<br><a class="match-link" href="${p.url}" target="_blank">Ver en Easy Broker →</a>`:''}</div>
+      </div>`;
+    list.appendChild(card);
+  });
+  section.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function clearResults() {
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('chatInput').value='';
+  document.getElementById('results-list').innerHTML='';
+}
+</script>
+</body>
+</html>
