@@ -35,10 +35,23 @@ export default async function handler(req, res) {
 
     let presupuesto = null;
 
-    const matchMillones = texto.match(/(\d+)\s?mill/);
-    if (matchMillones) {
-      presupuesto = parseInt(matchMillones[1]) * 1000000;
-    }
+// Detecta números grandes tipo 62,000,000
+const matchNumeroGrande = texto.match(/\$?\s?([\d,]{6,})/);
+if (matchNumeroGrande) {
+  presupuesto = parseInt(matchNumeroGrande[1].replace(/,/g, ""));
+}
+
+// Detecta "7 millones"
+const matchMillones = texto.match(/(\d+)\s?(millones|millon|mill)/);
+if (matchMillones && !presupuesto) {
+  presupuesto = parseInt(matchMillones[1]) * 1000000;
+}
+
+// Detecta "30 mil"
+const matchMiles = texto.match(/(\d+)\s?mil/);
+if (matchMiles && !presupuesto) {
+  presupuesto = parseInt(matchMiles[1]) * 1000;
+}
 
     const matchMiles = texto.match(/(\d{2,3})\s?mil/);
     if (matchMiles && !presupuesto) {
@@ -66,7 +79,14 @@ export default async function handler(req, res) {
 
       const tipo = (p["tipo de propiedad"] || "").toLowerCase();
       const zona = (p["colonia/zona/barrio"] || "").toLowerCase();
+// LIMPIAR PRECIOS (IMPORTANTE)
+const precioVenta = parseFloat(
+  (p["precio de venta"] || "0").toString().replace(/,/g, "")
+);
 
+const precioRenta = parseFloat(
+  (p["precio de renta"] || "0").toString().replace(/,/g, "")
+);
       let match = true;
 
       // Venta / renta
@@ -101,12 +121,14 @@ export default async function handler(req, res) {
       // Presupuesto
       if (presupuesto) {
 
-        if (buscaVenta) {
-          const precioVenta = parseFloat(p["precio de venta"] || 0);
-          if (precioVenta) {
-            match = match && precioVenta <= presupuesto * 1.2;
-          }
-        }
+  if (buscaVenta && precioVenta) {
+    match = match && precioVenta <= presupuesto * 1.2;
+  }
+
+  if (buscaRenta && precioRenta) {
+    match = match && precioRenta <= presupuesto * 1.2;
+  }
+}
 
         if (buscaRenta) {
           const precioRenta = parseFloat(p["precio de renta"] || 0);
