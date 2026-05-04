@@ -11,36 +11,42 @@ export default async function handler(req, res) {
 
     const texto = chat.toLowerCase();
 
+    // -----------------------
+    // INTENCIÓN
+    // -----------------------
     const buscaVenta = texto.includes("venta");
     const buscaRenta = texto.includes("renta");
-    const buscaCasa = texto.includes("casa");
-    const buscaDepto = texto.includes("depa") || texto.includes("departamento");
 
-    const zonas = [
-  "bosques",
-  "lomas",
-  "interlomas",
-  "polanco",
-  "condesa",
-  "cuajimalpa",
-  "contadero",
-  "santa fe",
-  "pedregal",
-  "roma norte",
-  "roma"
-];
+    const buscaCasa = texto.includes("casa");
+    const buscaDepto =
+      texto.includes("depa") || texto.includes("departamento");
+
+    // -----------------------
+    // PRESUPUESTO
+    // -----------------------
     let presupuesto = null;
 
+    // 62,000,000
     const matchNumeroGrande = texto.match(/\$?\s?([\d,]{6,})/);
     if (matchNumeroGrande) {
       presupuesto = parseInt(matchNumeroGrande[1].replace(/,/g, ""));
     }
 
+    // 7 millones
     const matchMillones = texto.match(/(\d+)\s?(millones|millon|mill)/);
     if (matchMillones && !presupuesto) {
       presupuesto = parseInt(matchMillones[1]) * 1000000;
     }
 
+    // 30 mil
+    const matchMiles = texto.match(/(\d+)\s?mil/);
+    if (matchMiles && !presupuesto) {
+      presupuesto = parseInt(matchMiles[1]) * 1000;
+    }
+
+    // -----------------------
+    // FETCH SUPABASE
+    // -----------------------
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -54,6 +60,9 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
+    // -----------------------
+    // SCORING INTELIGENTE
+    // -----------------------
     const resultados = data.map(p => {
       const tipo = (p["tipo de propiedad"] || "").toLowerCase();
       const zona = (p["colonia/zona/barrio"] || "").toLowerCase();
@@ -68,18 +77,28 @@ export default async function handler(req, res) {
 
       let score = 0;
 
+      // Operación
       if (buscaVenta && p["propiedad en venta"] === true) score += 2;
       if (buscaRenta && p["propiedad en renta"] === true) score += 2;
 
+      // Tipo
       if (buscaCasa && tipo.includes("casa")) score += 2;
       if (buscaDepto && tipo.includes("departamento")) score += 2;
 
-      if (zonasDetectadas.length > 0) {
-        if (zonasDetectadas.some(z => zona.includes(z))) {
-          score += 3;
-        }
+      // -----------------------
+      // ZONA AUTOMÁTICA 🔥
+      // -----------------------
+      const palabras = texto.split(" ");
+
+      const coincideZona = palabras.some(palabra =>
+        palabra.length > 4 && zona.includes(palabra)
+      );
+
+      if (coincideZona) {
+        score += 4;
       }
 
+      // Presupuesto
       if (presupuesto && buscaVenta && precioVenta > 0) {
         if (precioVenta <= presupuesto * 1.3) score += 2;
       }
@@ -91,10 +110,16 @@ export default async function handler(req, res) {
       return { ...p, score };
     });
 
+    // -----------------------
+    // FILTRO FINAL
+    // -----------------------
     const filtradas = resultados
       .filter(p => p.score >= 5)
       .sort((a, b) => b.score - a.score);
 
+    // -----------------------
+    // RESPUESTA
+    // -----------------------
     res.status(200).json({
       encontrados: filtradas.length,
       matches: filtradas.slice(0, 20)
