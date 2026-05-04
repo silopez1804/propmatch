@@ -25,12 +25,20 @@ export default async function handler(req, res) {
     let tipoDetectado = null;
 
     if (texto.includes("casa")) tipoDetectado = "casa";
-    else if (texto.includes("departamento") || texto.includes("depa") || texto.includes("ph") || texto.includes("garden"))
-      tipoDetectado = "departamento";
-    else if (texto.includes("oficina")) tipoDetectado = "oficina";
-    else if (texto.includes("local")) tipoDetectado = "local";
-    else if (texto.includes("terreno")) tipoDetectado = "terreno";
-    else if (texto.includes("bodega")) tipoDetectado = "bodega";
+    else if (
+      texto.includes("departamento") ||
+      texto.includes("depa") ||
+      texto.includes("ph") ||
+      texto.includes("garden")
+    ) tipoDetectado = "departamento";
+    else if (texto.includes("oficina") || texto.includes("consultorio"))
+      tipoDetectado = "oficina";
+    else if (texto.includes("local"))
+      tipoDetectado = "local";
+    else if (texto.includes("terreno"))
+      tipoDetectado = "terreno";
+    else if (texto.includes("bodega"))
+      tipoDetectado = "bodega";
 
     // -----------------------
     // OPERACIÓN
@@ -58,60 +66,43 @@ export default async function handler(req, res) {
       }
     });
 
+    if (!response.ok) {
+      return res.status(500).json({ error: "Error en Supabase" });
+    }
+
     const data = await response.json();
 
-// -----------------------
-// ZONA INTELIGENTE 🔥
-// -----------------------
+    // -----------------------
+    // 🔥 ZONAS DESDE TU BASE
+    // -----------------------
+    const zonasUnicas = [
+      ...new Set(
+        data
+          .map(p => (p["colonia/zona/barrio"] || "").toLowerCase())
+          .filter(z => z.length > 3)
+      )
+    ];
 
-const zonasMacro = [
-  "polanco",
-  "bosques",
-  "interlomas",
-  "santa fe",
-  "roma",
-  "condesa",
-  "tecamachalco"
-];
+    const zonasDetectadas = zonasUnicas.filter(z =>
+      texto.includes(z)
+    );
 
-// detectar zona macro
-let zonaMacroDetectada = zonasMacro.find(z => texto.includes(z));
+    // -----------------------
+    // 🔥 ZONAS MACRO
+    // -----------------------
+    const zonasMacro = [
+      "polanco",
+      "bosques",
+      "interlomas",
+      "santa fe",
+      "roma",
+      "condesa",
+      "tecamachalco"
+    ];
 
-// detectar zonas exactas desde tu base
-const zonasUnicas = [
-  ...new Set(
-    data
-      .map(p => (p["colonia/zona/barrio"] || "").toLowerCase())
-      .filter(z => z.length > 3)
-  )
-];
-
-const zonasDetectadas = zonasUnicas.filter(z =>
-  texto.includes(z)
-);
-
-// -----------------------
-// FILTRO DE ZONA
-// -----------------------
-
-if (zonaMacroDetectada) {
-  // macro (ej: polanco)
-  match = match && zona.includes(zonaMacroDetectada);
-}
-
-// -----------------------
-// FILTRO DE ZONA FINAL
-// -----------------------
-
-// 1. si detecta macro (ej: polanco)
-if (zonaMacroDetectada) {
-  match = match && zona.includes(zonaMacroDetectada);
-}
-
-// 2. si detecta zona exacta de tu base
-if (zonasDetectadas.length > 0) {
-  match = match && zonasDetectadas.some(z => zona.includes(z));
-}
+    const zonaMacroDetectada = zonasMacro.find(z =>
+      texto.includes(z)
+    );
 
     // -----------------------
     // FILTRO
@@ -121,8 +112,13 @@ if (zonasDetectadas.length > 0) {
       const tipo = (p["tipo de propiedad"] || "").toLowerCase();
       const zona = (p["colonia/zona/barrio"] || "").toLowerCase();
 
-      const precioVenta = parseFloat((p["precio de venta"] || "0").toString().replace(/,/g, ""));
-      const precioRenta = parseFloat((p["precio de renta"] || "0").toString().replace(/,/g, ""));
+      const precioVenta = parseFloat(
+        (p["precio de venta"] || "0").toString().replace(/,/g, "")
+      );
+
+      const precioRenta = parseFloat(
+        (p["precio de renta"] || "0").toString().replace(/,/g, "")
+      );
 
       let match = true;
 
@@ -145,21 +141,33 @@ if (zonasDetectadas.length > 0) {
         }
       }
 
-      // 🔥 ZONA (AHORA SÍ BIEN)
+      // -----------------------
+      // ZONA (🔥 CLAVE)
+      // -----------------------
+
+      // 1. macro (ej: polanco)
+      if (zonaMacroDetectada) {
+        match = match && zona.includes(zonaMacroDetectada);
+      }
+
+      // 2. exacta (desde tu base)
       if (zonasDetectadas.length > 0) {
-        match = match && zonasDetectadas.includes(zona);
+        match = match && zonasDetectadas.some(z => zona.includes(z));
       }
 
       return match;
     });
 
+    // -----------------------
+    // RESPUESTA
+    // -----------------------
     res.status(200).json({
       encontrados: filtradas.length,
       matches: filtradas.slice(0, 20)
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("ERROR:", error);
     res.status(500).json({ error: "Error en servidor" });
   }
 }
