@@ -72,8 +72,9 @@ export default async function handler(req, res) {
       if (buscaDepto && tipo.includes("departamento")) score += 2;
 
       if (zonasDetectadas.length > 0) {
-        if (zonasDetectadas.some(z => zona.includes(z))) score += 2;
-      }
+  if (zonasDetectadas.some(z => zona.includes(z))) {
+    score += 3; // zona pesa más
+  }
 
       if (presupuesto && buscaVenta && precioVenta > 0) {
         if (precioVenta <= presupuesto * 1.3) score += 2;
@@ -87,7 +88,7 @@ export default async function handler(req, res) {
     });
 
     const filtradas = resultados
-      .filter(p => p.score >= 2)
+      .filter(p => p.score >= 4)
       .sort((a, b) => b.score - a.score);
 
     res.status(200).json({
