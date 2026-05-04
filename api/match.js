@@ -9,9 +9,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "No hay texto" });
     }
 
-    // -----------------------
-    // LIMPIAR TEXTO
-    // -----------------------
     let texto = chat.toLowerCase()
       .replace(/\n/g, " ")
       .replace(/\[.*?\]/g, "")
@@ -19,68 +16,38 @@ export default async function handler(req, res) {
       .replace(/\s+/g, " ")
       .trim();
 
-    // -----------------------
-    // DETECTAR TIPO
-    // -----------------------
+    // TIPO
     let tipoDetectado = null;
-
     if (texto.includes("casa")) tipoDetectado = "casa";
-    else if (
-      texto.includes("departamento") ||
-      texto.includes("depa") ||
-      texto.includes("ph") ||
-      texto.includes("garden")
-    ) tipoDetectado = "departamento";
+    else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
 
-    // -----------------------
     // OPERACIÓN
-    // -----------------------
     const buscaVenta = texto.includes("venta");
     const buscaRenta = texto.includes("renta");
 
-    // -----------------------
     // PRECIO
-    // -----------------------
     let presupuesto = null;
-
     const matchPrecio = texto.match(/\$\s?([\d,]+)/);
     if (matchPrecio) {
       presupuesto = parseInt(matchPrecio[1].replace(/,/g, ""));
     }
 
-    // -----------------------
-    // 🔥 DETECTAR RECÁMARAS
-    // -----------------------
+    // RECÁMARAS
     let recamaras = null;
+    const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras|habitacion|habitaciones)/);
+    if (recMatch) recamaras = parseInt(recMatch[1]);
 
-    const recMatch = texto.match(/(\d+)\s*(rec|recs|recamara|recamaras|recámara|recámara|habitacion|habitaciones)/);
-    if (recMatch) {
-      recamaras = parseInt(recMatch[1]);
-    }
-
-    // -----------------------
-    // 🔥 DETECTAR BAÑOS
-    // -----------------------
+    // BAÑOS
     let banos = null;
-
     const banMatch = texto.match(/(\d+)\s*(ba|baño|baños)/);
-    if (banMatch) {
-      banos = parseInt(banMatch[1]);
-    }
+    if (banMatch) banos = parseInt(banMatch[1]);
 
-    // -----------------------
-    // 🔥 DETECTAR ESTACIONAMIENTOS
-    // -----------------------
+    // ESTACIONAMIENTOS
     let estacionamientos = null;
-
     const estMatch = texto.match(/(\d+)\s*(estac|auto|cajones)/);
-    if (estMatch) {
-      estacionamientos = parseInt(estMatch[1]);
-    }
+    if (estMatch) estacionamientos = parseInt(estMatch[1]);
 
-    // -----------------------
-    // FETCH DATA
-    // -----------------------
+    // FETCH
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -90,60 +57,17 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // -----------------------
-    // ZONAS DESDE BASE
-    // -----------------------
-    const zonasUnicas = [
-      ...new Set(
-        data
-          .map(p => (p["colonia/zona/barrio"] || "").toLowerCase())
-          .filter(z => z.length > 3)
-      )
-    ];
-
-    const zonasDetectadas = zonasUnicas.filter(z =>
-      texto.includes(z)
-    );
-
-    // -----------------------
-    // ZONAS MACRO
-    // -----------------------
-    const zonasMacro = [
-      "polanco",
-      "bosques",
-      "interlomas",
-      "santa fe",
-      "roma",
-      "condesa",
-      "tecamachalco"
-    ];
-
-    const zonaMacroDetectada = zonasMacro.find(z =>
-      texto.includes(z)
-    );
-
-    // -----------------------
-    // FILTRO
-    // -----------------------
     const filtradas = data.filter(p => {
-
       const tipo = (p["tipo de propiedad"] || "").toLowerCase();
       const zona = (p["colonia/zona/barrio"] || "").toLowerCase();
 
-      const precioVenta = parseFloat(
-        (p["precio de venta"] || "0").toString().replace(/,/g, "")
-      );
-
-      const precioRenta = parseFloat(
-        (p["precio de renta"] || "0").toString().replace(/,/g, "")
-      );
+      const precioVenta = parseFloat((p["precio de venta"] || "0").toString().replace(/,/g, ""));
+      const precioRenta = parseFloat((p["precio de renta"] || "0").toString().replace(/,/g, ""));
 
       let match = true;
 
       // TIPO
-      if (tipoDetectado) {
-        match = match && tipo.includes(tipoDetectado);
-      }
+      if (tipoDetectado) match = match && tipo.includes(tipoDetectado);
 
       // OPERACIÓN
       if (buscaVenta) match = match && p["propiedad en venta"] === true;
@@ -151,52 +75,34 @@ export default async function handler(req, res) {
 
       // PRECIO
       if (presupuesto) {
-        if (buscaVenta && precioVenta) {
-          match = match && precioVenta <= presupuesto * 1.2;
-        }
-        if (buscaRenta && precioRenta) {
-          match = match && precioRenta <= presupuesto * 1.2;
-        }
+        if (buscaVenta && precioVenta) match = match && precioVenta <= presupuesto * 1.2;
+        if (buscaRenta && precioRenta) match = match && precioRenta <= presupuesto * 1.2;
       }
 
-      // ZONA
-      if (zonaMacroDetectada) {
-        match = match && zona.includes(zonaMacroDetectada);
-      }
-
-      if (zonasDetectadas.length > 0) {
-        match = match && zonasDetectadas.some(z => zona.includes(z));
-      }
-
-      // 🔥 FILTRO POR CARACTERÍSTICAS (YA CORRECTO)
+      // RECÁMARAS
       if (recamaras !== null) {
         const recProp = Number(p["recámaras"]) || 0;
+
         if (recamaras <= 2) {
-        match = match && recProp === recamaras;
+          match = match && recProp === recamaras;
         } else {
-        match = match && recProp >= recamaras;
+          match = match && recProp >= recamaras;
+        }
       }
 
+      // BAÑOS
       if (banos !== null) {
         const banProp = Number(p["baños"]) || 0;
         match = match && banProp >= banos;
       }
 
+      // ESTACIONAMIENTOS
       if (estacionamientos !== null) {
         const estProp = Number(p["estacionamientos"]) || 0;
         match = match && estProp >= estacionamientos;
       }
 
       return match;
-    });
-
-    // -----------------------
-    // ORDENAR
-    // -----------------------
-    filtradas.sort((a, b) => {
-      const precioA = parseFloat((a["precio de venta"] || a["precio de renta"] || 0));
-      const precioB = parseFloat((b["precio de venta"] || b["precio de renta"] || 0));
-      return precioA - precioB;
     });
 
     res.status(200).json({
