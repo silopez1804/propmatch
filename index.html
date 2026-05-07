@@ -14,19 +14,21 @@ body {
   margin: 0;
   text-align: center;
 }
-  input, select, button {
+
+input, select, button {
   font-family: 'Montserrat', sans-serif;
 }
+
 input, select {
   background: #f2f2f2;
-}
-h1, h3 {
-  font-family: 'Playfair Display', serif;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  margin: 5px;
 }
 
-h1 {
-  margin-top: 10px;
-  margin-bottom: 5px;
+h1, h3 {
+  font-family: 'Playfair Display', serif;
 }
 
 .input-container {
@@ -43,43 +45,28 @@ textarea {
   border-radius: 14px;
   border: none;
   background: #f2f2f2;
-  font-size: 15px;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
 }
 
-/* 🔥 ICONO PERFECTO */
 .sync-icon {
   position: absolute;
   right: 16px;
   top: 16px;
   width: 20px;
-  height: 20px;
   padding: 8px;
   background: white;
   border-radius: 50%;
-  object-fit: contain;
   cursor: pointer;
-  opacity: 0.9;
   box-shadow: 0 4px 10px rgba(0,0,0,0.18);
-  transition: 0.2s;
-}
-
-.sync-icon:hover {
-  transform: rotate(90deg);
-  opacity: 1;
 }
 
 button {
-  margin-top: 25px;
-  padding: 16px 34px;
-  border: none;
+  margin-top: 20px;
+  padding: 14px 30px;
   background: #ff5a00;
   color: white;
-  border-radius: 14px;
-  font-weight: 600;
-  font-size: 16px;
+  border-radius: 12px;
+  border: none;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
 }
 
 #result {
@@ -87,172 +74,109 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
-  text-align: left;
 }
 
 .card {
   background: white;
-  padding: 16px;
-  border-radius: 20px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  padding: 15px;
+  border-radius: 15px;
 }
 
 .price {
-  font-size: 22px;
   font-weight: bold;
-  margin: 10px 0;
-}
-
-.code {
-  color: #999;
-  font-size: 12px;
-}
-
-.btn {
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  margin-right: 5px;
-}
-
-.btn-dark {
-  background: black;
-  color: white;
-  border: none;
-}
-
-.btn-green {
-  background: #25D366;
-  color: white;
-}
-
-#statusSync {
-  font-size: 13px;
-  color: #666;
-  margin-top: 8px;
 }
 </style>
 </head>
 
 <body>
 
-<div style="max-width:900px; margin:0 auto; text-align:left;">
-  <img src="logo_ssprop.png" style="height:55px; margin-bottom:15px;">
-</div>
+<img src="logo_ssprop.png" style="height:55px; margin-bottom:15px;">
 
 <h1>PropMatch</h1>
-<p style="color:#555; font-size:14px;">
-  Busca por cliente o pega un chat de WhatsApp
-</p>
-<div class="input-container">
- <div style="margin-bottom:20px;">
+<p style="color:#444;">Busca por cliente o pega un chat de WhatsApp</p>
 
-  <input id="zona" placeholder="Zona (ej: Polanco)"
-    style="padding:10px; border-radius:10px; border:none; margin:5px; width:160px;">
+<!-- 🔥 BOTONES MODO -->
+<div>
+  <button onclick="cambiarModo('cliente')">Cliente</button>
+  <button onclick="cambiarModo('whatsapp')">WhatsApp</button>
+</div>
 
-  <input id="recamarasInput" type="number" placeholder="Recámaras"
-    style="padding:10px; border-radius:10px; border:none; margin:5px; width:120px;">
+<!-- 🔥 CLIENTE -->
+<div id="modoCliente">
 
-  <input id="presupuesto" type="number" placeholder="Presupuesto"
-    style="padding:10px; border-radius:10px; border:none; margin:5px; width:140px;">
+  <input id="zona" placeholder="Zona">
+  <input id="recamarasInput" placeholder="Recámaras">
+  <input id="presupuesto" placeholder="Presupuesto">
 
-  <select id="operacion"
-    style="padding:10px; border-radius:10px; border:none; margin:5px;">
+  <select id="operacion">
     <option value="">Operación</option>
-    <option value="renta">Renta</option>
     <option value="venta">Venta</option>
+    <option value="renta">Renta</option>
   </select>
 
   <br>
-
   <button onclick="buscarCliente()">Buscar por cliente</button>
 
 </div>
 
-  <!-- 🔥 ICONO -->
-  <div class="input-container">
-  
-  <textarea id="chat"></textarea>
+<!-- 🔥 WHATSAPP -->
+<div id="modoWhatsapp">
 
-  <img src="/sync.png"
-       class="sync-icon"
-       onclick="actualizarInventario()">
+  <div class="input-container">
+    <textarea id="chat"></textarea>
+
+    <img src="/sync.png"
+         class="sync-icon"
+         onclick="actualizarInventario()">
+  </div>
+
+  <p id="statusSync"></p>
+
+  <button id="btn">Buscar Matches</button>
 
 </div>
 
+<div id="result"></div>
+
 <script>
+
+function cambiarModo(modo) {
+  const cliente = document.getElementById("modoCliente");
+  const whatsapp = document.getElementById("modoWhatsapp");
+
+  if (modo === "cliente") {
+    cliente.style.display = "block";
+    whatsapp.style.display = "none";
+  } else {
+    cliente.style.display = "none";
+    whatsapp.style.display = "block";
+  }
+}
+
+cambiarModo("cliente");
+
+// 🔥 WHATSAPP
 document.getElementById("btn").addEventListener("click", async () => {
 
   const chat = document.getElementById("chat").value;
 
-  if (!chat) {
-    alert("Pega un texto primero");
-    return;
-  }
+  if (!chat) return alert("Pega texto");
 
   document.getElementById("result").innerHTML = "Buscando...";
 
-  try {
-    const res = await fetch("/api/match", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ chat })
-    });
+  const res = await fetch("/api/match", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ chat })
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    let html = `<h2>${data.encontrados} resultados</h2>`;
-
-    data.matches.forEach(p => {
-      html += `
-      <div class="card">
-        <div class="code">${p["id público (EB)"] || ""}</div>
-        <h3>${p["título de propiedad"] || "Sin título"}</h3>
-        <div class="price">${p["precio de renta"] || p["precio de venta"] || "N/A"}</div>
-        <p>📍 ${p["colonia/zona/barrio"] || ""}</p>
-        <p>🛏 ${p["recámaras"] || 0} · 🛁 ${p["baños"] || 0} · 🚗 ${p["estacionamientos"] || 0}</p>
-
-        <button class="btn btn-dark"
-          onclick="navigator.clipboard.writeText('${p["id público (EB)"]}')">
-          Copiar código
-        </button>
-
-        <a class="btn btn-green"
-          href="https://wa.me/?text=${encodeURIComponent(
-            `Te comparto esta propiedad:\n\n${p["título de propiedad"]}\nCódigo: ${p["id público (EB)"]}\nPrecio: ${p["precio de renta"] || p["precio de venta"]}`
-          )}"
-          target="_blank">
-          WhatsApp
-        </a>
-      </div>
-      `;
-    });
-
-    document.getElementById("result").innerHTML = html;
-
-  } catch (err) {
-    document.getElementById("result").innerHTML = "Error conectando";
-  }
+  pintarResultados(data);
 });
 
-async function actualizarInventario() {
-  const status = document.getElementById("statusSync");
-
-  status.innerText = "⏳ Actualizando inventario...";
-
-  try {
-    const res = await fetch("/api/sync-easybroker");
-    const data = await res.json();
-
-    status.innerText = `✅ ${data.total} propiedades actualizadas`;
-  } catch (error) {
-    status.innerText = "❌ Error al actualizar";
-  }
-}
-  async function buscarCliente() {
+// 🔥 CLIENTE
+async function buscarCliente() {
 
   const zona = document.getElementById("zona").value.toLowerCase();
   const recamaras = document.getElementById("recamarasInput").value;
@@ -261,44 +185,50 @@ async function actualizarInventario() {
 
   document.getElementById("result").innerHTML = "Buscando...";
 
-  try {
+  const res = await fetch("/api/match", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      modoManual: true,
+      zona,
+      recamaras,
+      presupuesto,
+      operacion
+    })
+  });
 
-    const res = await fetch("/api/match", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        modoManual: true,
-        zona,
-        recamaras,
-        presupuesto,
-        operacion
-      })
-    });
+  const data = await res.json();
 
-    const data = await res.json();
-
-    let html = `<h2>${data.encontrados} resultados</h2>`;
-
-    data.matches.forEach(p => {
-      html += `
-      <div class="card">
-        <div class="code">${p["id público (EB)"] || ""}</div>
-        <h3>${p["título de propiedad"] || "Sin título"}</h3>
-        <div class="price">${p["precio de renta"] || p["precio de venta"] || "N/A"}</div>
-        <p>📍 ${p["colonia/zona/barrio"] || ""}</p>
-        <p>🛏 ${p["recámaras"] || 0} · 🛁 ${p["baños"] || 0} · 🚗 ${p["estacionamientos"] || 0}</p>
-      </div>
-      `;
-    });
-
-    document.getElementById("result").innerHTML = html;
-
-  } catch (err) {
-    document.getElementById("result").innerHTML = "Error conectando";
-  }
+  pintarResultados(data);
 }
+
+// 🔥 RENDER
+function pintarResultados(data) {
+  let html = `<h2>${data.encontrados} resultados</h2>`;
+
+  data.matches.forEach(p => {
+    html += `
+      <div class="card">
+        <h3>${p["título de propiedad"]}</h3>
+        <div class="price">${p["precio de renta"] || p["precio de venta"]}</div>
+      </div>
+    `;
+  });
+
+  document.getElementById("result").innerHTML = html;
+}
+
+// 🔥 SYNC
+async function actualizarInventario() {
+  const status = document.getElementById("statusSync");
+  status.innerText = "Actualizando...";
+
+  const res = await fetch("/api/sync-easybroker");
+  const data = await res.json();
+
+  status.innerText = "Listo: " + data.total;
+}
+
 </script>
 
 </body>
