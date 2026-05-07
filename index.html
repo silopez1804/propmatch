@@ -14,7 +14,12 @@ body {
   margin: 0;
   text-align: center;
 }
-
+  input, select, button {
+  font-family: 'Montserrat', sans-serif;
+}
+input, select {
+  background: #f2f2f2;
+}
 h1, h3 {
   font-family: 'Playfair Display', serif;
 }
@@ -45,8 +50,8 @@ textarea {
 /* 🔥 ICONO PERFECTO */
 .sync-icon {
   position: absolute;
-  right: 14px;
-  top: 14px;
+  right: 16px;
+  top: 16px;
   width: 20px;
   height: 20px;
   padding: 8px;
@@ -166,16 +171,15 @@ button {
   <textarea id="chat"></textarea>
 
   <!-- 🔥 ICONO -->
+  <div class="input-container">
+  
+  <textarea id="chat"></textarea>
+
   <img src="/sync.png"
        class="sync-icon"
        onclick="actualizarInventario()">
+
 </div>
-
-<p id="statusSync"></p>
-
-<button id="btn">Buscar Matches</button>
-
-<div id="result"></div>
 
 <script>
 document.getElementById("btn").addEventListener("click", async () => {
