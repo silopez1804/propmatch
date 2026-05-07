@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>PropMatch</title>
+<meta charset="UTF-8">
+<title>PropMatch</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
 
@@ -15,38 +15,58 @@ body {
   text-align: center;
 }
 
-input, select, button {
-  font-family: 'Montserrat', sans-serif;
-}
-
-input, select {
-  background: #f2f2f2;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  margin: 5px;
-}
-
 h1, h3 {
   font-family: 'Playfair Display', serif;
 }
 
+/* BOTONES */
+#modoBotones {
+  margin: 30px 0;
+}
+
+#modoBotones button {
+  margin: 0 12px;
+  padding: 14px 32px;
+  border-radius: 25px;
+  border: none;
+  background: #e5e5e5;
+  color: #333;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+#modoBotones button.activo {
+  background: #ff5a00;
+  color: white;
+}
+
+/* INPUTS */
+input, select {
+  background: #f2f2f2;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  margin: 5px;
+}
+
+/* TEXTAREA */
 .input-container {
   position: relative;
   width: 90%;
-  max-width: 800px;
-  margin: auto;
+  max-width: 900px;
+  margin: 30px auto;
 }
 
 textarea {
   width: 100%;
-  height: 160px;
-  padding: 15px;
-  border-radius: 14px;
+  height: 220px;
+  padding: 20px;
+  border-radius: 18px;
   border: none;
   background: #f2f2f2;
 }
 
+/* ICONO */
 .sync-icon {
   position: absolute;
   right: 16px;
@@ -56,19 +76,20 @@ textarea {
   background: white;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
 }
 
-button {
-  margin-top: 20px;
-  padding: 14px 30px;
+/* BOTÓN */
+.main-btn {
+  margin-top: 25px;
+  padding: 16px 34px;
   background: #ff5a00;
   color: white;
-  border-radius: 12px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
 }
 
+/* RESULTADOS */
 #result {
   margin-top: 40px;
   display: grid;
@@ -78,7 +99,7 @@ button {
 
 .card {
   background: white;
-  padding: 15px;
+  padding: 16px;
   border-radius: 15px;
 }
 
@@ -95,16 +116,15 @@ button {
 <h1>PropMatch</h1>
 <p style="color:#444;">Busca por cliente o pega un chat de WhatsApp</p>
 
-<!-- 🔥 BOTONES MODO -->
-<div>
-  <button onclick="cambiarModo('cliente')">Cliente</button>
-  <button onclick="cambiarModo('whatsapp')">WhatsApp</button>
+<div id="modoBotones">
+  <button id="btnCliente" onclick="cambiarModo('cliente')">Cliente</button>
+  <button id="btnWhatsapp" onclick="cambiarModo('whatsapp')">WhatsApp</button>
 </div>
 
-<!-- 🔥 CLIENTE -->
+<!-- CLIENTE -->
 <div id="modoCliente">
 
-  <input id="zona" placeholder="Zona">
+  <input id="zona" placeholder="Zona (ej: Polanco)">
   <input id="recamarasInput" placeholder="Recámaras">
   <input id="presupuesto" placeholder="Presupuesto">
 
@@ -115,11 +135,11 @@ button {
   </select>
 
   <br>
-  <button onclick="buscarCliente()">Buscar por cliente</button>
+  <button class="main-btn" onclick="buscarCliente()">Buscar por cliente</button>
 
 </div>
 
-<!-- 🔥 WHATSAPP -->
+<!-- WHATSAPP -->
 <div id="modoWhatsapp">
 
   <div class="input-container">
@@ -132,7 +152,7 @@ button {
 
   <p id="statusSync"></p>
 
-  <button id="btn">Buscar Matches</button>
+  <button id="btn" class="main-btn">Buscar Matches</button>
 
 </div>
 
@@ -144,23 +164,34 @@ function cambiarModo(modo) {
   const cliente = document.getElementById("modoCliente");
   const whatsapp = document.getElementById("modoWhatsapp");
 
+  const btnC = document.getElementById("btnCliente");
+  const btnW = document.getElementById("btnWhatsapp");
+
+  btnC.classList.remove("activo");
+  btnW.classList.remove("activo");
+
   if (modo === "cliente") {
     cliente.style.display = "block";
     whatsapp.style.display = "none";
+    btnC.classList.add("activo");
   } else {
     cliente.style.display = "none";
     whatsapp.style.display = "block";
+    btnW.classList.add("activo");
   }
 }
 
 cambiarModo("cliente");
 
-// 🔥 WHATSAPP
+// WHATSAPP
 document.getElementById("btn").addEventListener("click", async () => {
 
   const chat = document.getElementById("chat").value;
 
-  if (!chat) return alert("Pega texto");
+  if (!chat) {
+    alert("Pega un texto primero");
+    return;
+  }
 
   document.getElementById("result").innerHTML = "Buscando...";
 
@@ -171,11 +202,10 @@ document.getElementById("btn").addEventListener("click", async () => {
   });
 
   const data = await res.json();
-
   pintarResultados(data);
 });
 
-// 🔥 CLIENTE
+// CLIENTE
 async function buscarCliente() {
 
   const zona = document.getElementById("zona").value.toLowerCase();
@@ -198,19 +228,20 @@ async function buscarCliente() {
   });
 
   const data = await res.json();
-
   pintarResultados(data);
 }
 
-// 🔥 RENDER
+// RESULTADOS
 function pintarResultados(data) {
+
   let html = `<h2>${data.encontrados} resultados</h2>`;
 
   data.matches.forEach(p => {
     html += `
       <div class="card">
-        <h3>${p["título de propiedad"]}</h3>
-        <div class="price">${p["precio de renta"] || p["precio de venta"]}</div>
+        <h3>${p["título de propiedad"] || "Sin título"}</h3>
+        <div class="price">${p["precio de renta"] || p["precio de venta"] || "N/A"}</div>
+        <p>📍 ${p["colonia/zona/barrio"] || ""}</p>
       </div>
     `;
   });
@@ -218,15 +249,20 @@ function pintarResultados(data) {
   document.getElementById("result").innerHTML = html;
 }
 
-// 🔥 SYNC
+// SYNC
 async function actualizarInventario() {
+
   const status = document.getElementById("statusSync");
-  status.innerText = "Actualizando...";
+  status.innerText = "⏳ Actualizando...";
 
-  const res = await fetch("/api/sync-easybroker");
-  const data = await res.json();
+  try {
+    const res = await fetch("/api/sync-easybroker");
+    const data = await res.json();
 
-  status.innerText = "Listo: " + data.total;
+    status.innerText = `✅ ${data.total} propiedades`;
+  } catch {
+    status.innerText = "❌ Error";
+  }
 }
 
 </script>
