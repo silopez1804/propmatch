@@ -19,6 +19,18 @@ h1, h3 {
   font-family: 'Playfair Display', serif;
 }
 
+h1 {
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.input-container {
+  position: relative;
+  width: 90%;
+  max-width: 800px;
+  margin: auto;
+}
+
 textarea {
   width: 100%;
   height: 160px;
@@ -30,31 +42,26 @@ textarea {
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
 }
 
-.input-container {
-  position: relative;
-  width: 90%;
-  max-width: 800px;
-  margin: auto;
-}
-
-/* 🔥 ICONO CON FONDO BLANCO */
+/* 🔥 ICONO PERFECTO */
 .sync-icon {
   position: absolute;
-  right: 12px;
-  top: 12px;
-  width: 18px;
-  padding: 6px;
+  right: 14px;
+  top: 14px;
+  width: 20px;
+  height: 20px;
+  padding: 8px;
   background: white;
   border-radius: 50%;
+  object-fit: contain;
   cursor: pointer;
-  opacity: 0.85;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  opacity: 0.9;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
   transition: 0.2s;
 }
 
 .sync-icon:hover {
+  transform: rotate(90deg);
   opacity: 1;
-  transform: rotate(20deg);
 }
 
 button {
@@ -118,7 +125,7 @@ button {
 #statusSync {
   font-size: 13px;
   color: #666;
-  margin-top: 5px;
+  margin-top: 8px;
 }
 </style>
 </head>
@@ -132,13 +139,11 @@ button {
 <h1>PropMatch</h1>
 <p>Pega tu chat de WhatsApp</p>
 
-<!-- 🔥 TEXTAREA + ICONO -->
 <div class="input-container">
   <textarea id="chat"></textarea>
-<img src="/sync.png"
-     class="sync-icon"
-     onclick="actualizarInventario()">
-  <img src="TU-IMAGEN.png"
+
+  <!-- 🔥 ICONO -->
+  <img src="/sync.png"
        class="sync-icon"
        onclick="actualizarInventario()">
 </div>
@@ -209,7 +214,7 @@ document.getElementById("btn").addEventListener("click", async () => {
 async function actualizarInventario() {
   const status = document.getElementById("statusSync");
 
-  status.innerText = "⏳ Actualizando...";
+  status.innerText = "⏳ Actualizando inventario...";
 
   try {
     const res = await fetch("/api/sync-easybroker");
@@ -217,7 +222,7 @@ async function actualizarInventario() {
 
     status.innerText = `✅ ${data.total} propiedades actualizadas`;
   } catch (error) {
-    status.innerText = "❌ Error";
+    status.innerText = "❌ Error al actualizar";
   }
 }
 </script>
