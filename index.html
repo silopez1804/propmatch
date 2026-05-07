@@ -140,6 +140,29 @@ button {
 <p>Pega tu chat de WhatsApp</p>
 
 <div class="input-container">
+ <div style="margin-bottom:20px;">
+
+  <input id="zona" placeholder="Zona (ej: Polanco)"
+    style="padding:10px; border-radius:10px; border:none; margin:5px; width:160px;">
+
+  <input id="recamarasInput" type="number" placeholder="Recámaras"
+    style="padding:10px; border-radius:10px; border:none; margin:5px; width:120px;">
+
+  <input id="presupuesto" type="number" placeholder="Presupuesto"
+    style="padding:10px; border-radius:10px; border:none; margin:5px; width:140px;">
+
+  <select id="operacion"
+    style="padding:10px; border-radius:10px; border:none; margin:5px;">
+    <option value="">Operación</option>
+    <option value="renta">Renta</option>
+    <option value="venta">Venta</option>
+  </select>
+
+  <br>
+
+  <button onclick="buscarCliente()">Buscar por cliente</button>
+
+</div>
   <textarea id="chat"></textarea>
 
   <!-- 🔥 ICONO -->
@@ -223,6 +246,53 @@ async function actualizarInventario() {
     status.innerText = `✅ ${data.total} propiedades actualizadas`;
   } catch (error) {
     status.innerText = "❌ Error al actualizar";
+  }
+}
+  async function buscarCliente() {
+
+  const zona = document.getElementById("zona").value.toLowerCase();
+  const recamaras = document.getElementById("recamarasInput").value;
+  const presupuesto = document.getElementById("presupuesto").value;
+  const operacion = document.getElementById("operacion").value;
+
+  document.getElementById("result").innerHTML = "Buscando...";
+
+  try {
+
+    const res = await fetch("/api/match", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        modoManual: true,
+        zona,
+        recamaras,
+        presupuesto,
+        operacion
+      })
+    });
+
+    const data = await res.json();
+
+    let html = `<h2>${data.encontrados} resultados</h2>`;
+
+    data.matches.forEach(p => {
+      html += `
+      <div class="card">
+        <div class="code">${p["id público (EB)"] || ""}</div>
+        <h3>${p["título de propiedad"] || "Sin título"}</h3>
+        <div class="price">${p["precio de renta"] || p["precio de venta"] || "N/A"}</div>
+        <p>📍 ${p["colonia/zona/barrio"] || ""}</p>
+        <p>🛏 ${p["recámaras"] || 0} · 🛁 ${p["baños"] || 0} · 🚗 ${p["estacionamientos"] || 0}</p>
+      </div>
+      `;
+    });
+
+    document.getElementById("result").innerHTML = html;
+
+  } catch (err) {
+    document.getElementById("result").innerHTML = "Error conectando";
   }
 }
 </script>
