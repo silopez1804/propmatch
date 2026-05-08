@@ -15,9 +15,9 @@ export default async function handler(req, res) {
 
     const propiedades = await response.json();
 
-    // =========================
+    // =====================================================
     // 🟠 MODO CLIENTE
-    // =========================
+    // =====================================================
     if (modoManual) {
 
       const resultados = propiedades.filter(p => {
@@ -38,13 +38,17 @@ export default async function handler(req, res) {
           match = match && recProp >= Number(recamaras);
         }
 
-        // presupuesto
+        // 💰 PRESUPUESTO (±500k 🔥)
         if (presupuesto) {
           const pres = Number(presupuesto);
-          match = match && precio <= pres * 1.4; // más flexible
+          const margen = 500000;
+
+          match = match &&
+            precio >= (pres - margen) &&
+            precio <= (pres + margen);
         }
 
-        // 🔥 OPERACIÓN CORREGIDA
+        // operación
         if (operacion === "venta") {
           match = match && p["propiedad en venta"] === true;
         }
@@ -62,9 +66,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // =========================
+    // =====================================================
     // 🟢 MODO WHATSAPP
-    // =========================
+    // =====================================================
 
     let texto = (chat || "")
       .toLowerCase()
@@ -74,19 +78,23 @@ export default async function handler(req, res) {
       .replace(/\s+/g, " ")
       .trim();
 
+    // tipo
     let tipoDetectado = null;
     if (texto.includes("casa")) tipoDetectado = "casa";
     else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
 
+    // operación
     const buscaVenta = texto.includes("venta");
     const buscaRenta = texto.includes("renta");
 
+    // precio detectado
     let presupuestoDetectado = null;
     const matchPrecio = texto.match(/\$\s?([\d,]+)/);
     if (matchPrecio) {
       presupuestoDetectado = parseInt(matchPrecio[1].replace(/,/g, ""));
     }
 
+    // recámaras
     let recamarasDetectadas = null;
     const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras|habitacion)/);
     if (recMatch) recamarasDetectadas = parseInt(recMatch[1]);
@@ -100,23 +108,33 @@ export default async function handler(req, res) {
 
       let match = true;
 
+      // tipo
       if (tipoDetectado) {
         match = match && tipo.includes(tipoDetectado);
       }
 
-      // 🔥 OPERACIÓN CORREGIDA
+      // operación
       if (buscaVenta) match = match && p["propiedad en venta"] === true;
       if (buscaRenta) match = match && p["propiedad en renta"] === true;
 
+      // 💰 PRESUPUESTO (±500k 🔥)
       if (presupuestoDetectado) {
+        const margen = 500000;
+
         if (buscaVenta && precioVenta) {
-          match = match && precioVenta <= presupuestoDetectado * 1.4;
+          match = match &&
+            precioVenta >= (presupuestoDetectado - margen) &&
+            precioVenta <= (presupuestoDetectado + margen);
         }
+
         if (buscaRenta && precioRenta) {
-          match = match && precioRenta <= presupuestoDetectado * 1.4;
+          match = match &&
+            precioRenta >= (presupuestoDetectado - margen) &&
+            precioRenta <= (presupuestoDetectado + margen);
         }
       }
 
+      // recámaras
       if (recamarasDetectadas !== null) {
         match = match && recProp >= recamarasDetectadas;
       }
