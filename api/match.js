@@ -5,10 +5,22 @@ export default async function handler(req, res) {
 
     const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
 
-    if (!chat) {
-      return res.status(400).json({ error: "No hay texto" });
-    }
+if (modoManual) {
 
+  let resultados = propiedades.filter(p => {
+    return (
+      (!zona || p["colonia/zona/barrio"]?.toLowerCase().includes(zona)) &&
+      (!recamaras || p["recámaras"] >= Number(recamaras)) &&
+      (!presupuesto || Number(p["precio de renta"] || p["precio de venta"]) <= Number(presupuesto)) &&
+      (!operacion || p["tipo de operación"]?.toLowerCase() === operacion)
+    );
+  });
+
+  return res.json({
+    encontrados: resultados.length,
+    matches: resultados
+  });
+}
     let texto = chat.toLowerCase()
       .replace(/\n/g, " ")
       .replace(/\[.*?\]/g, "")
