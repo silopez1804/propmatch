@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
     const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
 
-    // 🔥 TRAER PROPIEDADES
+    // 🔥 traer propiedades
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -21,14 +21,6 @@ export default async function handler(req, res) {
     // =====================================================
     if (modoManual) {
 
-      // 🚫 evitar búsquedas vacías
-      if (!zona && !presupuesto) {
-        return res.json({
-          encontrados: 0,
-          matches: []
-        });
-      }
-
       const resultados = propiedades.filter(p => {
 
         const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
@@ -36,53 +28,71 @@ export default async function handler(req, res) {
         const recProp = Number(p["recámaras"]) || 0;
         const operacionProp = (p["tipo de operación"] || "").toLowerCase();
 
-        return (
-          (!zona || zonaProp.includes(zona)) &&
-          (!recamaras || recProp >= Number(recamaras)) &&
-          (!presupuesto || precio <= Number(presupuesto) * 1.1) &&
-          (!operacion || operacionProp.includes(operacion))
-        );
+        let match = true;
+
+        // zona (suave)
+        if (zona) {
+          match = match && zonaProp.includes(zona.toLowerCase());
+        }
+
+        // recámaras
+        if (recamaras) {
+          match = match && recProp >= Number(recamaras);
+        }
+
+        // presupuesto (más flexible 🔥)
+        if (presupuesto) {
+          const pres = Number(presupuesto);
+          match = match && precio <= pres * 1.3; // antes 1.1 → muy cerrado
+        }
+
+        // operación
+        if (operacion) {
+          match = match && operacionProp.includes(operacion);
+        }
+
+        return match;
       });
 
       return res.json({
         encontrados: resultados.length,
-        matches: resultados.slice(0, 8) // 🔥 solo mejores 8
+        matches: resultados.slice(0, 10) // más resultados útiles
       });
     }
 
     // =====================================================
-    // 🟢 MODO WHATSAPP (inteligente)
+    // 🟢 MODO WHATSAPP
     // =====================================================
 
-    let texto = chat.toLowerCase()
+    let texto = (chat || "")
+      .toLowerCase()
       .replace(/\n/g, " ")
       .replace(/\[.*?\]/g, "")
       .replace(/[^\w\s$.,]/g, "")
       .replace(/\s+/g, " ")
       .trim();
 
-    // TIPO
+    // tipo
     let tipoDetectado = null;
     if (texto.includes("casa")) tipoDetectado = "casa";
     else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
 
-    // OPERACIÓN
+    // operación
     const buscaVenta = texto.includes("venta");
     const buscaRenta = texto.includes("renta");
 
-    // PRECIO
+    // precio
     let presupuestoDetectado = null;
     const matchPrecio = texto.match(/\$\s?([\d,]+)/);
     if (matchPrecio) {
       presupuestoDetectado = parseInt(matchPrecio[1].replace(/,/g, ""));
     }
 
-    // RECÁMARAS
+    // recámaras
     let recamarasDetectadas = null;
     const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras|habitacion|habitaciones)/);
     if (recMatch) recamarasDetectadas = parseInt(recMatch[1]);
 
-    // FILTRO
     const filtradas = propiedades.filter(p => {
 
       const tipo = (p["tipo de propiedad"] || "").toLowerCase();
@@ -93,19 +103,21 @@ export default async function handler(req, res) {
       let match = true;
 
       // tipo
-      if (tipoDetectado) match = match && tipo.includes(tipoDetectado);
+      if (tipoDetectado) {
+        match = match && tipo.includes(tipoDetectado);
+      }
 
       // operación
       if (buscaVenta) match = match && p["propiedad en venta"] === true;
       if (buscaRenta) match = match && p["propiedad en renta"] === true;
 
-      // precio
+      // precio (más flexible 🔥)
       if (presupuestoDetectado) {
         if (buscaVenta && precioVenta) {
-          match = match && precioVenta <= presupuestoDetectado * 1.1;
+          match = match && precioVenta <= presupuestoDetectado * 1.3;
         }
         if (buscaRenta && precioRenta) {
-          match = match && precioRenta <= presupuestoDetectado * 1.1;
+          match = match && precioRenta <= presupuestoDetectado * 1.3;
         }
       }
 
@@ -117,13 +129,13 @@ export default async function handler(req, res) {
       return match;
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       encontrados: filtradas.length,
-      matches: filtradas.slice(0, 8) // 🔥 solo top 8
+      matches: filtradas.slice(0, 10)
     });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Error en servidor" });
+    return res.status(500).json({ error: "Error en servidor" });
   }
 }
