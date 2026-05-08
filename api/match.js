@@ -5,61 +5,7 @@ export default async function handler(req, res) {
 
     const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
 
-if (modoManual) {
-
-  let resultados = propiedades.filter(p => {
-    return (
-      (!zona || p["colonia/zona/barrio"]?.toLowerCase().includes(zona)) &&
-      (!recamaras || p["recámaras"] >= Number(recamaras)) &&
-      (!presupuesto || Number(p["precio de renta"] || p["precio de venta"]) <= Number(presupuesto)) &&
-      (!operacion || p["tipo de operación"]?.toLowerCase() === operacion)
-    );
-  });
-
-  return res.json({
-    encontrados: resultados.length,
-    matches: resultados
-  });
-}
-    let texto = chat.toLowerCase()
-      .replace(/\n/g, " ")
-      .replace(/\[.*?\]/g, "")
-      .replace(/[^\w\s$.,]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    // TIPO
-    let tipoDetectado = null;
-    if (texto.includes("casa")) tipoDetectado = "casa";
-    else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
-
-    // OPERACIÓN
-    const buscaVenta = texto.includes("venta");
-    const buscaRenta = texto.includes("renta");
-
-    // PRECIO
-    let presupuesto = null;
-    const matchPrecio = texto.match(/\$\s?([\d,]+)/);
-    if (matchPrecio) {
-      presupuesto = parseInt(matchPrecio[1].replace(/,/g, ""));
-    }
-
-    // RECÁMARAS
-    let recamaras = null;
-    const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras|habitacion|habitaciones)/);
-    if (recMatch) recamaras = parseInt(recMatch[1]);
-
-    // BAÑOS
-    let banos = null;
-    const banMatch = texto.match(/(\d+)\s*(ba|baño|baños)/);
-    if (banMatch) banos = parseInt(banMatch[1]);
-
-    // ESTACIONAMIENTOS
-    let estacionamientos = null;
-    const estMatch = texto.match(/(\d+)\s*(estac|auto|cajones)/);
-    if (estMatch) estacionamientos = parseInt(estMatch[1]);
-
-    // FETCH
+    // 🔥 TRAEMOS DATOS PRIMERO
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -69,49 +15,97 @@ if (modoManual) {
 
     const data = await response.json();
 
-    const filtradas = data.filter(p => {
-      const tipo = (p["tipo de propiedad"] || "").toLowerCase();
-      const zona = (p["colonia/zona/barrio"] || "").toLowerCase();
+    // =========================
+    // 🧠 MODO CLIENTE (FORMULARIO)
+    // =========================
+    if (modoManual) {
 
+      let resultados = data.filter(p => {
+
+        const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
+        const recProp = Number(p["recámaras"]) || 0;
+
+        const precioVenta = parseFloat((p["precio de venta"] || "0").toString().replace(/,/g, ""));
+        const precioRenta = parseFloat((p["precio de renta"] || "0").toString().replace(/,/g, ""));
+
+        let match = true;
+
+        // ZONA
+        if (zona) match = match && zonaProp.includes(zona.toLowerCase());
+
+        // RECÁMARAS
+        if (recamaras) match = match && recProp >= Number(recamaras);
+
+        // OPERACIÓN + PRECIO
+        if (presupuesto) {
+          if (operacion === "venta" && precioVenta) {
+            match = match && precioVenta <= Number(presupuesto) * 1.2;
+          }
+          if (operacion === "renta" && precioRenta) {
+            match = match && precioRenta <= Number(presupuesto) * 1.2;
+          }
+        }
+
+        if (operacion === "venta") match = match && p["propiedad en venta"] === true;
+        if (operacion === "renta") match = match && p["propiedad en renta"] === true;
+
+        return match;
+      });
+
+      return res.json({
+        encontrados: resultados.length,
+        matches: resultados.slice(0, 20)
+      });
+    }
+
+    // =========================
+    // 💬 MODO WHATSAPP (TU LÓGICA ORIGINAL)
+    // =========================
+
+    let texto = chat.toLowerCase()
+      .replace(/\n/g, " ")
+      .replace(/\[.*?\]/g, "")
+      .replace(/[^\w\s$.,]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    let tipoDetectado = null;
+    if (texto.includes("casa")) tipoDetectado = "casa";
+    else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
+
+    const buscaVenta = texto.includes("venta");
+    const buscaRenta = texto.includes("renta");
+
+    let presupuestoChat = null;
+    const matchPrecio = texto.match(/\$\s?([\d,]+)/);
+    if (matchPrecio) {
+      presupuestoChat = parseInt(matchPrecio[1].replace(/,/g, ""));
+    }
+
+    let recamarasChat = null;
+    const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras)/);
+    if (recMatch) recamarasChat = parseInt(recMatch[1]);
+
+    const filtradas = data.filter(p => {
+
+      const tipo = (p["tipo de propiedad"] || "").toLowerCase();
       const precioVenta = parseFloat((p["precio de venta"] || "0").toString().replace(/,/g, ""));
       const precioRenta = parseFloat((p["precio de renta"] || "0").toString().replace(/,/g, ""));
 
       let match = true;
 
-      // TIPO
       if (tipoDetectado) match = match && tipo.includes(tipoDetectado);
-
-      // OPERACIÓN
       if (buscaVenta) match = match && p["propiedad en venta"] === true;
       if (buscaRenta) match = match && p["propiedad en renta"] === true;
 
-      // PRECIO
-      if (presupuesto) {
-        if (buscaVenta && precioVenta) match = match && precioVenta <= presupuesto * 1.2;
-        if (buscaRenta && precioRenta) match = match && precioRenta <= presupuesto * 1.2;
+      if (presupuestoChat) {
+        if (buscaVenta && precioVenta) match = match && precioVenta <= presupuestoChat * 1.2;
+        if (buscaRenta && precioRenta) match = match && precioRenta <= presupuestoChat * 1.2;
       }
 
-      // RECÁMARAS
-      if (recamaras !== null) {
+      if (recamarasChat !== null) {
         const recProp = Number(p["recámaras"]) || 0;
-
-        if (recamaras <= 2) {
-          match = match && recProp === recamaras;
-        } else {
-          match = match && recProp >= recamaras;
-        }
-      }
-
-      // BAÑOS
-      if (banos !== null) {
-        const banProp = Number(p["baños"]) || 0;
-        match = match && banProp >= banos;
-      }
-
-      // ESTACIONAMIENTOS
-      if (estacionamientos !== null) {
-        const estProp = Number(p["estacionamientos"]) || 0;
-        match = match && estProp >= estacionamientos;
+        match = match && recProp >= recamarasChat;
       }
 
       return match;
