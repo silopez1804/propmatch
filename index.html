@@ -1,321 +1,154 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>PropMatch</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
-
-<style>
-body {
-  font-family: 'Montserrat', sans-serif;
-  background: #a8a49a;
-  padding: 40px;
-  margin: 0;
-  text-align: left;
-}
-
-h1, h3 {
-  font-family: 'Playfair Display', serif;
-  text-align: center;
-}
-
-#modoBotones {
-  text-align: center;
-  margin: 30px 0;
-}
-
-#modoBotones button {
-  margin: 0 10px;
-  padding: 14px 32px;
-  border-radius: 25px;
-  border: none;
-  background: #e5e5e5;
-  cursor: pointer;
-}
-
-#modoBotones .activo {
-  background: #ff5a00;
-  color: white;
-}
-
-/* INPUTS */
-input, select {
-  background: #f2f2f2;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  margin: 5px;
-}
-
-/* TEXTAREA */
-.input-container {
-  position: relative;
-  width: 90%;
-  max-width: 900px;
-  margin: 30px auto;
-}
-
-textarea {
-  width: 100%;
-  height: 220px;
-  padding: 20px;
-  border-radius: 18px;
-  border: none;
-  background: #f2f2f2;
-}
-
-/* ICONO */
-.sync-icon {
-  position: absolute;
-  right: 16px;
-  top: 16px;
-  width: 20px;
-  padding: 8px;
-  background: white;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-/* BOTÓN */
-.main-btn {
-  display: block;
-  margin: 25px auto;
-  padding: 16px 34px;
-  background: #ff5a00;
-  color: white;
-  border-radius: 14px;
-  border: none;
-  cursor: pointer;
-}
-
-/* RESULTADOS */
-#result {
-  max-width: 1100px;
-  margin: 40px auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.card {
-  background: white;
-  padding: 16px;
-  border-radius: 15px;
-  text-align: left;
-}
-
-.price {
-  font-weight: bold;
-  margin: 8px 0;
-}
-
-.code {
-  font-size: 12px;
-  color: #999;
-}
-
-/* BOTONES TARJETA */
-.buttons {
-  margin-top: 12px;
-}
-
-.btn-dark {
-  background: black;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-right: 5px;
-}
-
-.btn-green {
-  background: #25D366;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 8px;
-  text-decoration: none;
-}
-</style>
-</head>
-
-<body>
-
-<img src="logo_ssprop.png" style="height:55px; display:block; margin:auto;">
-
-<h1>PropMatch</h1>
-<p style="text-align:center;">Busca por cliente o pega un chat de WhatsApp</p>
-
-<div id="modoBotones">
-  <button id="btnCliente" onclick="cambiarModo('cliente')">Cliente</button>
-  <button id="btnWhatsapp" onclick="cambiarModo('whatsapp')">WhatsApp</button>
-</div>
-
-<!-- CLIENTE -->
-<div id="modoCliente" style="text-align:center;">
-
-  <input id="zona" placeholder="Zona (ej: Polanco)">
-  <input id="recamarasInput" placeholder="Recámaras">
-  <input id="presupuesto" placeholder="Presupuesto">
-
-  <select id="operacion">
-    <option value="">Operación</option>
-    <option value="venta">Venta</option>
-    <option value="renta">Renta</option>
-  </select>
-
-  <button class="main-btn" onclick="buscarCliente()">Buscar por cliente</button>
-
-</div>
-
-<!-- WHATSAPP -->
-<div id="modoWhatsapp">
-
-  <div class="input-container">
-    <textarea id="chat"></textarea>
-
-    <img src="/sync.png"
-         class="sync-icon"
-         onclick="actualizarInventario()">
-  </div>
-
-  <p id="statusSync" style="text-align:center;"></p>
-
-  <button id="btn" class="main-btn">Buscar Matches</button>
-
-</div>
-
-<div id="result"></div>
-
-<script>
-
-// CAMBIO DE MODO
-function cambiarModo(modo) {
-  const cliente = document.getElementById("modoCliente");
-  const whatsapp = document.getElementById("modoWhatsapp");
-
-  document.getElementById("btnCliente").classList.remove("activo");
-  document.getElementById("btnWhatsapp").classList.remove("activo");
-
-  if (modo === "cliente") {
-    cliente.style.display = "block";
-    whatsapp.style.display = "none";
-    document.getElementById("btnCliente").classList.add("activo");
-  } else {
-    cliente.style.display = "none";
-    whatsapp.style.display = "block";
-    document.getElementById("btnWhatsapp").classList.add("activo");
-  }
-}
-
-cambiarModo("cliente");
-
-// WHATSAPP
-document.getElementById("btn").addEventListener("click", async () => {
-  const chat = document.getElementById("chat").value;
-
-  if (!chat) return alert("Pega un texto");
-
-  document.getElementById("result").innerHTML = "Buscando...";
-
-  const res = await fetch("/api/match", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ chat })
-  });
-
-  const data = await res.json();
-  pintarResultados(data);
-});
-
-// CLIENTE
-async function buscarCliente() {
-  const zona = document.getElementById("zona").value.toLowerCase();
-  const recamaras = document.getElementById("recamarasInput").value;
-  const presupuesto = document.getElementById("presupuesto").value;
-  const operacion = document.getElementById("operacion").value;
-
-  document.getElementById("result").innerHTML = "Buscando...";
-
-  const res = await fetch("/api/match", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      modoManual: true,
-      zona,
-      recamaras,
-      presupuesto,
-      operacion
-    })
-  });
-
-  const data = await res.json();
-  pintarResultados(data);
-}
-
-// RESULTADOS
-function pintarResultados(data) {
-
-  let html = `<h2>${data.encontrados} resultados</h2>`;
-
-  data.matches.forEach(p => {
-
-    const codigo = p["id público (EB)"] || "";
-    const titulo = p["título de propiedad"] || "Sin título";
-    const precio = p["precio de renta"] || p["precio de venta"] || "N/A";
-    const zona = p["colonia/zona/barrio"] || "";
-
-    html += `
-      <div class="card">
-
-        <div class="code">${codigo}</div>
-
-        <h3>${titulo}</h3>
-
-        <div class="price">${precio}</div>
-
-        <p>📍 ${zona}</p>
-
-        <div class="buttons">
-
-          <button class="btn-dark"
-            onclick="navigator.clipboard.writeText('${codigo}')">
-            Copiar código
-          </button>
-
-          <a class="btn-green"
-            href="https://wa.me/?text=${encodeURIComponent(
-              `Te comparto esta propiedad:\n\n${titulo}\nCódigo: ${codigo}\nPrecio: ${precio}`
-            )}"
-            target="_blank">
-            WhatsApp
-          </a>
-
-        </div>
-
-      </div>
-    `;
-  });
-
-  document.getElementById("result").innerHTML = html;
-}
-
-// SYNC
-async function actualizarInventario() {
-  const status = document.getElementById("statusSync");
-  status.innerText = "⏳ Actualizando...";
-
+export default async function handler(req, res) {
   try {
-    const res = await fetch("/api/sync-easybroker");
-    const data = await res.json();
-    status.innerText = `✅ ${data.total} propiedades`;
-  } catch {
-    status.innerText = "❌ Error";
+
+    const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
+
+    const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
+
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`
+      }
+    });
+
+    const propiedades = await response.json();
+
+    // =====================================================
+    // 🟠 MODO CLIENTE
+    // =====================================================
+    if (modoManual) {
+
+      const resultados = propiedades.filter(p => {
+
+        const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
+        const precio = Number((p["precio de renta"] || p["precio de venta"] || "0").toString().replace(/,/g, ""));
+        const recProp = Number(p["recámaras"]) || 0;
+
+        let match = true;
+
+        // zona
+        if (zona) {
+          match = match && zonaProp.includes(zona.toLowerCase());
+        }
+
+        // recámaras
+        if (recamaras) {
+          match = match && recProp >= Number(recamaras);
+        }
+
+        // 💰 PRESUPUESTO (±500k 🔥)
+        if (presupuesto) {
+          const pres = Number(presupuesto);
+          const margen = 500000;
+
+          match = match &&
+            precio >= (pres - margen) &&
+            precio <= (pres + margen);
+        }
+
+        // operación
+        if (operacion === "venta") {
+          match = match && p["propiedad en venta"] === true;
+        }
+
+        if (operacion === "renta") {
+          match = match && p["propiedad en renta"] === true;
+        }
+
+        return match;
+      });
+
+      return res.json({
+        encontrados: resultados.length,
+        matches: resultados.slice(0, 10)
+      });
+    }
+
+    // =====================================================
+    // 🟢 MODO WHATSAPP
+    // =====================================================
+
+    let texto = (chat || "")
+      .toLowerCase()
+      .replace(/\n/g, " ")
+      .replace(/\[.*?\]/g, "")
+      .replace(/[^\w\s$.,]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // tipo
+    let tipoDetectado = null;
+    if (texto.includes("casa")) tipoDetectado = "casa";
+    else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
+
+    // operación
+    const buscaVenta = texto.includes("venta");
+    const buscaRenta = texto.includes("renta");
+
+    // precio detectado
+    let presupuestoDetectado = null;
+    const matchPrecio = texto.match(/\$\s?([\d,]+)/);
+    if (matchPrecio) {
+      presupuestoDetectado = parseInt(matchPrecio[1].replace(/,/g, ""));
+    }
+
+    // recámaras
+    let recamarasDetectadas = null;
+    const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras|habitacion)/);
+    if (recMatch) recamarasDetectadas = parseInt(recMatch[1]);
+
+    const filtradas = propiedades.filter(p => {
+
+      const tipo = (p["tipo de propiedad"] || "").toLowerCase();
+      const precioVenta = parseFloat((p["precio de venta"] || "0").toString().replace(/,/g, ""));
+      const precioRenta = parseFloat((p["precio de renta"] || "0").toString().replace(/,/g, ""));
+      const recProp = Number(p["recámaras"]) || 0;
+
+      let match = true;
+
+      // tipo
+      if (tipoDetectado) {
+        match = match && tipo.includes(tipoDetectado);
+      }
+
+      // operación
+      if (buscaVenta) match = match && p["propiedad en venta"] === true;
+      if (buscaRenta) match = match && p["propiedad en renta"] === true;
+
+      // 💰 PRESUPUESTO (±500k 🔥)
+      if (presupuestoDetectado) {
+        const margen = 500000;
+
+        if (buscaVenta && precioVenta) {
+          match = match &&
+            precioVenta >= (presupuestoDetectado - margen) &&
+            precioVenta <= (presupuestoDetectado + margen);
+        }
+
+        if (buscaRenta && precioRenta) {
+          match = match &&
+            precioRenta >= (presupuestoDetectado - margen) &&
+            precioRenta <= (presupuestoDetectado + margen);
+        }
+      }
+
+      // recámaras
+      if (recamarasDetectadas !== null) {
+        match = match && recProp >= recamarasDetectadas;
+      }
+
+      return match;
+    });
+
+    return res.json({
+      encontrados: filtradas.length,
+      matches: filtradas.slice(0, 10)
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error en servidor" });
   }
 }
-
-</script>
-
-</body>
-</html>
