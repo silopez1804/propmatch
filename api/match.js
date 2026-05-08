@@ -6,7 +6,6 @@ export default async function handler(req, res) {
 
     const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
 
-    // 🔥 traer propiedades
     const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
       headers: {
         apikey: SUPABASE_KEY,
@@ -16,9 +15,9 @@ export default async function handler(req, res) {
 
     const propiedades = await response.json();
 
-    // =====================================================
-    // 🟠 MODO CLIENTE (manual)
-    // =====================================================
+    // =========================
+    // 🟠 MODO CLIENTE
+    // =========================
     if (modoManual) {
 
       const resultados = propiedades.filter(p => {
@@ -26,11 +25,10 @@ export default async function handler(req, res) {
         const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
         const precio = Number((p["precio de renta"] || p["precio de venta"] || "0").toString().replace(/,/g, ""));
         const recProp = Number(p["recámaras"]) || 0;
-        const operacionProp = (p["tipo de operación"] || "").toLowerCase();
 
         let match = true;
 
-        // zona (suave)
+        // zona
         if (zona) {
           match = match && zonaProp.includes(zona.toLowerCase());
         }
@@ -40,15 +38,19 @@ export default async function handler(req, res) {
           match = match && recProp >= Number(recamaras);
         }
 
-        // presupuesto (más flexible 🔥)
+        // presupuesto
         if (presupuesto) {
           const pres = Number(presupuesto);
-          match = match && precio <= pres * 1.3; // antes 1.1 → muy cerrado
+          match = match && precio <= pres * 1.4; // más flexible
         }
 
-        // operación
-        if (operacion) {
-          match = match && operacionProp.includes(operacion);
+        // 🔥 OPERACIÓN CORREGIDA
+        if (operacion === "venta") {
+          match = match && p["propiedad en venta"] === true;
+        }
+
+        if (operacion === "renta") {
+          match = match && p["propiedad en renta"] === true;
         }
 
         return match;
@@ -56,13 +58,13 @@ export default async function handler(req, res) {
 
       return res.json({
         encontrados: resultados.length,
-        matches: resultados.slice(0, 10) // más resultados útiles
+        matches: resultados.slice(0, 10)
       });
     }
 
-    // =====================================================
+    // =========================
     // 🟢 MODO WHATSAPP
-    // =====================================================
+    // =========================
 
     let texto = (chat || "")
       .toLowerCase()
@@ -72,25 +74,21 @@ export default async function handler(req, res) {
       .replace(/\s+/g, " ")
       .trim();
 
-    // tipo
     let tipoDetectado = null;
     if (texto.includes("casa")) tipoDetectado = "casa";
     else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
 
-    // operación
     const buscaVenta = texto.includes("venta");
     const buscaRenta = texto.includes("renta");
 
-    // precio
     let presupuestoDetectado = null;
     const matchPrecio = texto.match(/\$\s?([\d,]+)/);
     if (matchPrecio) {
       presupuestoDetectado = parseInt(matchPrecio[1].replace(/,/g, ""));
     }
 
-    // recámaras
     let recamarasDetectadas = null;
-    const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras|habitacion|habitaciones)/);
+    const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras|habitacion)/);
     if (recMatch) recamarasDetectadas = parseInt(recMatch[1]);
 
     const filtradas = propiedades.filter(p => {
@@ -102,26 +100,23 @@ export default async function handler(req, res) {
 
       let match = true;
 
-      // tipo
       if (tipoDetectado) {
         match = match && tipo.includes(tipoDetectado);
       }
 
-      // operación
+      // 🔥 OPERACIÓN CORREGIDA
       if (buscaVenta) match = match && p["propiedad en venta"] === true;
       if (buscaRenta) match = match && p["propiedad en renta"] === true;
 
-      // precio (más flexible 🔥)
       if (presupuestoDetectado) {
         if (buscaVenta && precioVenta) {
-          match = match && precioVenta <= presupuestoDetectado * 1.3;
+          match = match && precioVenta <= presupuestoDetectado * 1.4;
         }
         if (buscaRenta && precioRenta) {
-          match = match && precioRenta <= presupuestoDetectado * 1.3;
+          match = match && precioRenta <= presupuestoDetectado * 1.4;
         }
       }
 
-      // recámaras
       if (recamarasDetectadas !== null) {
         match = match && recProp >= recamarasDetectadas;
       }
@@ -129,7 +124,7 @@ export default async function handler(req, res) {
       return match;
     });
 
-    return res.status(200).json({
+    return res.json({
       encontrados: filtradas.length,
       matches: filtradas.slice(0, 10)
     });
