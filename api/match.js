@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
     const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
 
-    const { chat } = req.body;
+    const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
 
     if (!chat) {
       return res.status(400).json({ error: "No hay texto" });
