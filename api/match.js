@@ -7,8 +7,11 @@ module.exports = async (req, res) => {
 
     const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
 
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
-      headers: {
+    const response = await fetch(
+  `${SUPABASE_URL}/rest/v1/properties?select=*`,
+{
+  const propiedades = await response.json();
+    console.log(propiedades);
         apikey: SUPABASE_KEY,
         Authorization: `Bearer ${SUPABASE_KEY}`
       }
