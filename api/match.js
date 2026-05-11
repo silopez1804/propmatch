@@ -3,7 +3,7 @@ module.exports = async (req, res) => {
   try {
 
     const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
-    const SUPABASE_KEY = "TU_SUPABASE_KEY";
+   const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
 
     const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
 
