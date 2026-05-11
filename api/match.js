@@ -3,54 +3,80 @@ module.exports = async (req, res) => {
   try {
 
     const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
-   const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
 
-    const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
+    const SUPABASE_KEY =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2d2RkZGtmeW1iY2JndmhzbmZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTQ1NjAsImV4cCI6MjA5MzQzMDU2MH0.fOqf2sEhOLp2qoV5hCNBI63_PQeWLGWiY-n88Xgei7M";
+
+    const {
+      chat,
+      modoManual,
+      zona,
+      recamaras,
+      presupuesto,
+      operacion
+    } = req.body || {};
+
+    // ==========================
+    // FETCH SUPABASE
+    // ==========================
 
     const response = await fetch(
-  `${SUPABASE_URL}/rest/v1/properties?select=*`,
-{
-  const propiedades = await response.json();
-    console.log(propiedades);
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`
+      `${SUPABASE_URL}/rest/v1/properties?select=*`,
+      {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
+        }
       }
-    });
+    );
 
     const propiedades = await response.json();
 
+    console.log(propiedades);
+
     // ==========================
-    // CLIENTE
+    // MODO CLIENTE
     // ==========================
+
     if (modoManual) {
 
       const resultados = propiedades.filter(p => {
 
-        const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
+        const zonaProp =
+          (p["colonia/zona/barrio"] || "").toLowerCase();
+
         const precio = Number(
-          (p["precio de renta"] || p["precio de venta"] || "0")
+          (p["precio de renta"] ||
+           p["precio de venta"] ||
+           "0")
           .toString()
           .replace(/,/g, "")
         );
 
-        const recProp = Number(p["recámaras"]) || 0;
+        const recProp =
+          Number(p["recámaras"]) || 0;
 
         let match = true;
 
-        // zona
+        // ZONA
         if (zona) {
-          match = match && zonaProp.includes(zona.toLowerCase());
+          match =
+            match &&
+            zonaProp.includes(zona.toLowerCase());
         }
 
-        // recámaras
+        // RECÁMARAS
         if (recamaras) {
-          match = match && recProp >= Number(recamaras);
+          match =
+            match &&
+            recProp >= Number(recamaras);
         }
 
-        // presupuesto ±500k
+        // PRESUPUESTO ±500K
         if (presupuesto) {
 
           const pres = Number(presupuesto);
+
           const margen = 500000;
 
           match =
@@ -59,13 +85,17 @@ module.exports = async (req, res) => {
             precio <= (pres + margen);
         }
 
-        // operación
+        // OPERACIÓN
         if (operacion === "venta") {
-          match = match && p["propiedad en venta"] === true;
+          match =
+            match &&
+            p["propiedad en venta"] === true;
         }
 
         if (operacion === "renta") {
-          match = match && p["propiedad en renta"] === true;
+          match =
+            match &&
+            p["propiedad en renta"] === true;
         }
 
         return match;
@@ -76,25 +106,53 @@ module.exports = async (req, res) => {
         encontrados: resultados.length,
         matches: resultados.slice(0, 10)
       });
+
     }
 
     // ==========================
-    // WHATSAPP
+    // MODO WHATSAPP
     // ==========================
 
-    let texto = (chat || "").toLowerCase();
+    let texto =
+      (chat || "")
+      .toLowerCase()
+      .replace(/\n/g, " ");
 
-    const buscaVenta = texto.includes("venta");
-    const buscaRenta = texto.includes("renta");
+    const buscaVenta =
+      texto.includes("venta");
 
+    const buscaRenta =
+      texto.includes("renta");
+
+    // PRECIO
     let presupuestoDetectado = null;
 
-    const matchPrecio = texto.match(/\$\s?([\d,]+)/);
+    const matchPrecio =
+      texto.match(/\$\s?([\d,]+)/);
 
     if (matchPrecio) {
-      presupuestoDetectado = parseInt(
-        matchPrecio[1].replace(/,/g, "")
+
+      presupuestoDetectado =
+        parseInt(
+          matchPrecio[1]
+          .replace(/,/g, "")
+        );
+
+    }
+
+    // RECÁMARAS
+    let recamarasDetectadas = null;
+
+    const recMatch =
+      texto.match(
+        /(\d+)\s*(rec|recamara|recamaras|habitacion)/i
       );
+
+    if (recMatch) {
+
+      recamarasDetectadas =
+        parseInt(recMatch[1]);
+
     }
 
     const filtradas = propiedades.filter(p => {
@@ -111,17 +169,25 @@ module.exports = async (req, res) => {
         .replace(/,/g, "")
       );
 
+      const recProp =
+        Number(p["recámaras"]) || 0;
+
       let match = true;
 
+      // OPERACIÓN
       if (buscaVenta) {
-        match = match && p["propiedad en venta"] === true;
+        match =
+          match &&
+          p["propiedad en venta"] === true;
       }
 
       if (buscaRenta) {
-        match = match && p["propiedad en renta"] === true;
+        match =
+          match &&
+          p["propiedad en renta"] === true;
       }
 
-      // presupuesto ±500k
+      // PRESUPUESTO ±500K
       if (presupuestoDetectado) {
 
         const margen = 500000;
@@ -130,17 +196,33 @@ module.exports = async (req, res) => {
 
           match =
             match &&
-            precioVenta >= (presupuestoDetectado - margen) &&
-            precioVenta <= (presupuestoDetectado + margen);
+            precioVenta >=
+              (presupuestoDetectado - margen) &&
+            precioVenta <=
+              (presupuestoDetectado + margen);
+
         }
 
         if (buscaRenta && precioRenta) {
 
           match =
             match &&
-            precioRenta >= (presupuestoDetectado - margen) &&
-            precioRenta <= (presupuestoDetectado + margen);
+            precioRenta >=
+              (presupuestoDetectado - margen) &&
+            precioRenta <=
+              (presupuestoDetectado + margen);
+
         }
+
+      }
+
+      // RECÁMARAS
+      if (recamarasDetectadas !== null) {
+
+        match =
+          match &&
+          recProp >= recamarasDetectadas;
+
       }
 
       return match;
