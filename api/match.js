@@ -2,7 +2,8 @@ module.exports = async (req, res) => {
 
   try {
 
-    const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
+    const SUPABASE_URL =
+      "https://rvwdddkfymbcbgvhsnfq.supabase.co";
 
     const SUPABASE_KEY =
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2d2RkZGtmeW1iY2JndmhzbmZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4NTQ1NjAsImV4cCI6MjA5MzQzMDU2MH0.fOqf2sEhOLp2qoV5hCNBI63_PQeWLGWiY-n88Xgei7M";
@@ -14,11 +15,11 @@ module.exports = async (req, res) => {
       recamaras,
       presupuesto,
       operacion
-    } = req.body || {};
+    } = req.body;
 
-    // ==========================
+    // =========================
     // FETCH SUPABASE
-    // ==========================
+    // =========================
 
     const response = await fetch(
       `${SUPABASE_URL}/rest/v1/properties?select=*`,
@@ -32,26 +33,28 @@ module.exports = async (req, res) => {
 
     const propiedades = await response.json();
 
-    console.log(propiedades);
-
-    // ==========================
+    // =========================
     // MODO CLIENTE
-    // ==========================
+    // =========================
 
     if (modoManual) {
 
       const resultados = propiedades.filter(p => {
 
         const zonaProp =
-          (p["colonia/zona/barrio"] || "").toLowerCase();
+          (p["colonia/zona/barrio"] || "")
+          .toLowerCase();
 
-        const precio = Number(
-          (p["precio de renta"] ||
-           p["precio de venta"] ||
-           "0")
-          .toString()
-          .replace(/,/g, "")
-        );
+        const precio =
+          Number(
+            (
+              p["precio de renta"] ||
+              p["precio de venta"] ||
+              "0"
+            )
+            .toString()
+            .replace(/,/g, "")
+          );
 
         const recProp =
           Number(p["recámaras"]) || 0;
@@ -60,22 +63,27 @@ module.exports = async (req, res) => {
 
         // ZONA
         if (zona) {
+
           match =
             match &&
-            zonaProp.includes(zona.toLowerCase());
+            zonaProp.includes(
+              zona.toLowerCase()
+            );
         }
 
         // RECÁMARAS
         if (recamaras) {
+
           match =
             match &&
             recProp >= Number(recamaras);
         }
 
-        // PRESUPUESTO ±500K
+        // PRESUPUESTO ±500k
         if (presupuesto) {
 
-          const pres = Number(presupuesto);
+          const pres =
+            Number(presupuesto);
 
           const margen = 500000;
 
@@ -87,12 +95,14 @@ module.exports = async (req, res) => {
 
         // OPERACIÓN
         if (operacion === "venta") {
+
           match =
             match &&
             p["propiedad en venta"] === true;
         }
 
         if (operacion === "renta") {
+
           match =
             match &&
             p["propiedad en renta"] === true;
@@ -106,17 +116,20 @@ module.exports = async (req, res) => {
         encontrados: resultados.length,
         matches: resultados.slice(0, 10)
       });
-
     }
 
-    // ==========================
+    // =========================
     // MODO WHATSAPP
-    // ==========================
+    // =========================
 
     let texto =
       (chat || "")
       .toLowerCase()
-      .replace(/\n/g, " ");
+      .replace(/\n/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // OPERACIÓN
 
     const buscaVenta =
       texto.includes("venta");
@@ -124,11 +137,12 @@ module.exports = async (req, res) => {
     const buscaRenta =
       texto.includes("renta");
 
-    // PRECIO
+    // PRESUPUESTO
+
     let presupuestoDetectado = null;
 
     const matchPrecio =
-      texto.match(/\$\s?([\d,]+)/);
+      texto.match(/\$?\s?([\d,]+)/);
 
     if (matchPrecio) {
 
@@ -137,37 +151,44 @@ module.exports = async (req, res) => {
           matchPrecio[1]
           .replace(/,/g, "")
         );
-
     }
 
     // RECÁMARAS
+
     let recamarasDetectadas = null;
 
     const recMatch =
       texto.match(
-        /(\d+)\s*(rec|recamara|recamaras|habitacion)/i
+        /(\d+)\s*(rec|recamara|recamaras|habitacion|habitaciones)/
       );
 
     if (recMatch) {
 
       recamarasDetectadas =
         parseInt(recMatch[1]);
-
     }
+
+    // FILTRO
 
     const filtradas = propiedades.filter(p => {
 
-      const precioVenta = parseFloat(
-        (p["precio de venta"] || "0")
-        .toString()
-        .replace(/,/g, "")
-      );
+      const precioVenta =
+        parseFloat(
+          (
+            p["precio de venta"] || "0"
+          )
+          .toString()
+          .replace(/,/g, "")
+        );
 
-      const precioRenta = parseFloat(
-        (p["precio de renta"] || "0")
-        .toString()
-        .replace(/,/g, "")
-      );
+      const precioRenta =
+        parseFloat(
+          (
+            p["precio de renta"] || "0"
+          )
+          .toString()
+          .replace(/,/g, "")
+        );
 
       const recProp =
         Number(p["recámaras"]) || 0;
@@ -175,24 +196,31 @@ module.exports = async (req, res) => {
       let match = true;
 
       // OPERACIÓN
+
       if (buscaVenta) {
+
         match =
           match &&
           p["propiedad en venta"] === true;
       }
 
       if (buscaRenta) {
+
         match =
           match &&
           p["propiedad en renta"] === true;
       }
 
-      // PRESUPUESTO ±500K
+      // PRESUPUESTO ±500k
+
       if (presupuestoDetectado) {
 
         const margen = 500000;
 
-        if (buscaVenta && precioVenta) {
+        if (
+          buscaVenta &&
+          precioVenta
+        ) {
 
           match =
             match &&
@@ -200,10 +228,12 @@ module.exports = async (req, res) => {
               (presupuestoDetectado - margen) &&
             precioVenta <=
               (presupuestoDetectado + margen);
-
         }
 
-        if (buscaRenta && precioRenta) {
+        if (
+          buscaRenta &&
+          precioRenta
+        ) {
 
           match =
             match &&
@@ -211,18 +241,18 @@ module.exports = async (req, res) => {
               (presupuestoDetectado - margen) &&
             precioRenta <=
               (presupuestoDetectado + margen);
-
         }
-
       }
 
       // RECÁMARAS
-      if (recamarasDetectadas !== null) {
+
+      if (
+        recamarasDetectadas !== null
+      ) {
 
         match =
           match &&
           recProp >= recamarasDetectadas;
-
       }
 
       return match;
@@ -230,8 +260,11 @@ module.exports = async (req, res) => {
     });
 
     return res.status(200).json({
+
       encontrados: filtradas.length,
+
       matches: filtradas.slice(0, 10)
+
     });
 
   } catch (error) {
@@ -239,7 +272,9 @@ module.exports = async (req, res) => {
     console.error(error);
 
     return res.status(500).json({
+
       error: "Error en servidor"
+
     });
 
   }
