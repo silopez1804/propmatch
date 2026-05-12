@@ -1,156 +1,452 @@
-export default async function handler(req, res) {
-  try {
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PropMatch</title>
 
-    const SUPABASE_URL = "https://rvwdddkfymbcbgvhsnfq.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_mZWxY9tf9S3U1rMY__JCJA_hV2lqMzD";
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
 
-    const { chat, modoManual, zona, recamaras, presupuesto, operacion } = req.body;
+<style>
 
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`
-      }
-    });
+body{
+  margin:0;
+  padding:40px;
+  background:#a8a49a;
+  font-family:'Montserrat',sans-serif;
+  color:#111;
+}
 
-    const propiedades = await response.json();
+.top-logo{
+  width:100%;
+  display:flex;
+  justify-content:flex-start;
+  margin-bottom:30px;
+}
 
-    // =====================================================
-    // 🟠 MODO CLIENTE
-    // =====================================================
-    if (modoManual) {
+.top-logo img{
+  height:65px;
+}
 
-      const resultados = propiedades.filter(p => {
+.main{
+  max-width:1400px;
+  margin:auto;
+}
 
-        const zonaProp = (p["colonia/zona/barrio"] || "").toLowerCase();
-        const precio = Number((p["precio de renta"] || p["precio de venta"] || "0").toString().replace(/,/g, ""));
-        const recProp = Number(p["recámaras"]) || 0;
+.hero{
+  text-align:center;
+}
 
-        let match = true;
+h1{
+  font-family:'Playfair Display',serif;
+  font-size:68px;
+  margin:10px 0;
+}
 
-        // zona
-        if (zona) {
-          match = match && zonaProp.includes(zona.toLowerCase());
-        }
+.subtitle{
+  color:#444;
+  font-size:20px;
+  margin-bottom:40px;
+}
 
-        // recámaras
-        if (recamaras) {
-          match = match && recProp >= Number(recamaras);
-        }
+.mode-buttons{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  margin-bottom:35px;
+}
 
-        // 💰 PRESUPUESTO (±500k 🔥)
-        if (presupuesto) {
-          const pres = Number(presupuesto);
-          const margen = 500000;
+.mode-buttons button{
+  width:200px;
+  height:70px;
+  border:none;
+  border-radius:24px;
+  font-size:18px;
+  cursor:pointer;
+  transition:0.2s;
+}
 
-          match = match &&
-            precio >= (pres - margen) &&
-            precio <= (pres + margen);
-        }
+.active{
+  background:#ff5a00;
+  color:white;
+  font-weight:600;
+}
 
-        // operación
-        if (operacion === "venta") {
-          match = match && p["propiedad en venta"] === true;
-        }
+.inactive{
+  background:#ececec;
+  color:#222;
+}
 
-        if (operacion === "renta") {
-          match = match && p["propiedad en renta"] === true;
-        }
+.filters{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  flex-wrap:wrap;
+  margin-bottom:40px;
+}
 
-        return match;
-      });
+.filters input,
+.filters select{
+  width:240px;
+  height:70px;
+  border:none;
+  border-radius:20px;
+  padding:0 20px;
+  font-size:18px;
+  background:#efefef;
+}
 
-      return res.json({
-        encontrados: resultados.length,
-        matches: resultados.slice(0, 10)
-      });
-    }
+.search-btn{
+  display:flex;
+  justify-content:center;
+  margin-bottom:50px;
+}
 
-    // =====================================================
-    // 🟢 MODO WHATSAPP
-    // =====================================================
+.search-btn button{
+  background:#ff5a00;
+  color:white;
+  border:none;
+  border-radius:22px;
+  padding:24px 70px;
+  font-size:20px;
+  font-weight:600;
+  cursor:pointer;
+}
 
-    let texto = (chat || "")
-      .toLowerCase()
-      .replace(/\n/g, " ")
-      .replace(/\[.*?\]/g, "")
-      .replace(/[^\w\s$.,]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
+.input-container{
+  position:relative;
+  width:100%;
+  max-width:1400px;
+  margin:auto;
+}
 
-    // tipo
-    let tipoDetectado = null;
-    if (texto.includes("casa")) tipoDetectado = "casa";
-    else if (texto.includes("depa") || texto.includes("departamento")) tipoDetectado = "departamento";
+textarea{
+  width:100%;
+  height:320px;
+  border:none;
+  border-radius:28px;
+  padding:30px;
+  font-size:18px;
+  resize:none;
+  background:#efefef;
+  box-sizing:border-box;
+}
 
-    // operación
-    const buscaVenta = texto.includes("venta");
-    const buscaRenta = texto.includes("renta");
+.sync-icon{
+  position:absolute;
+  top:22px;
+  right:22px;
+  width:28px;
+  background:white;
+  border-radius:50%;
+  padding:12px;
+  cursor:pointer;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
 
-    // precio detectado
-    let presupuestoDetectado = null;
-    const matchPrecio = texto.match(/\$\s?([\d,]+)/);
-    if (matchPrecio) {
-      presupuestoDetectado = parseInt(matchPrecio[1].replace(/,/g, ""));
-    }
+.results-title{
+  margin-top:60px;
+  margin-bottom:30px;
+  font-size:24px;
+  font-weight:700;
+}
 
-    // recámaras
-    let recamarasDetectadas = null;
-    const recMatch = texto.match(/(\d+)\s*(rec|recamara|recamaras|habitacion)/);
-    if (recMatch) recamarasDetectadas = parseInt(recMatch[1]);
+#result{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(420px,1fr));
+  gap:35px;
+}
 
-    const filtradas = propiedades.filter(p => {
+.card{
+  background:#efefef;
+  border-radius:30px;
+  padding:35px;
+  text-align:left;
+}
 
-      const tipo = (p["tipo de propiedad"] || "").toLowerCase();
-      const precioVenta = parseFloat((p["precio de venta"] || "0").toString().replace(/,/g, ""));
-      const precioRenta = parseFloat((p["precio de renta"] || "0").toString().replace(/,/g, ""));
-      const recProp = Number(p["recámaras"]) || 0;
+.card h3{
+  font-family:'Playfair Display',serif;
+  font-size:28px;
+  line-height:1.25;
+  margin-bottom:25px;
+}
 
-      let match = true;
+.price{
+  font-size:38px;
+  font-weight:700;
+  margin-bottom:20px;
+}
 
-      // tipo
-      if (tipoDetectado) {
-        match = match && tipo.includes(tipoDetectado);
-      }
+.location{
+  font-size:20px;
+  margin-bottom:15px;
+}
 
-      // operación
-      if (buscaVenta) match = match && p["propiedad en venta"] === true;
-      if (buscaRenta) match = match && p["propiedad en renta"] === true;
+.details{
+  color:#444;
+  margin-bottom:30px;
+}
 
-      // 💰 PRESUPUESTO (±500k 🔥)
-      if (presupuestoDetectado) {
-        const margen = 500000;
+.buttons{
+  display:flex;
+  gap:15px;
+  flex-wrap:wrap;
+}
 
-        if (buscaVenta && precioVenta) {
-          match = match &&
-            precioVenta >= (presupuestoDetectado - margen) &&
-            precioVenta <= (presupuestoDetectado + margen);
-        }
+.copy-btn{
+  background:black;
+  color:white;
+  border:none;
+  border-radius:12px;
+  padding:12px 18px;
+  cursor:pointer;
+}
 
-        if (buscaRenta && precioRenta) {
-          match = match &&
-            precioRenta >= (presupuestoDetectado - margen) &&
-            precioRenta <= (presupuestoDetectado + margen);
-        }
-      }
+.whatsapp-btn{
+  background:#25D366;
+  color:white;
+  text-decoration:none;
+  border-radius:12px;
+  padding:12px 18px;
+}
 
-      // recámaras
-      if (recamarasDetectadas !== null) {
-        match = match && recProp >= recamarasDetectadas;
-      }
+</style>
+</head>
 
-      return match;
-    });
+<body>
 
-    return res.json({
-      encontrados: filtradas.length,
-      matches: filtradas.slice(0, 10)
-    });
+<div class="main">
 
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Error en servidor" });
+<div class="top-logo">
+<img src="logo_ssprop.png">
+</div>
+
+<div class="hero">
+
+<h1>PropMatch</h1>
+
+<div class="subtitle">
+Busca por cliente o pega un chat de WhatsApp
+</div>
+
+<div class="mode-buttons">
+<button id="btnCliente" class="active" onclick="cambiarModo('cliente')">
+Cliente
+</button>
+
+<button id="btnWhatsapp" class="inactive" onclick="cambiarModo('whatsapp')">
+WhatsApp
+</button>
+</div>
+
+</div>
+
+<!-- CLIENTE -->
+
+<div id="modoCliente">
+
+<div class="filters">
+
+<input id="zona" placeholder="Zona (ej: Polanco)">
+
+<input id="recamarasInput" placeholder="Recámaras">
+
+<input id="presupuesto" placeholder="Presupuesto">
+
+<select id="operacion">
+<option value="">Operación</option>
+<option value="venta">Venta</option>
+<option value="renta">Renta</option>
+</select>
+
+</div>
+
+<div class="search-btn">
+<button onclick="buscarCliente()">
+Buscar por cliente
+</button>
+</div>
+
+</div>
+
+<!-- WHATSAPP -->
+
+<div id="modoWhatsapp" style="display:none;">
+
+<div class="input-container">
+
+<textarea id="chat"></textarea>
+
+<img
+src="sync.png"
+class="sync-icon"
+onclick="actualizarInventario()"
+>
+
+</div>
+
+<div class="search-btn">
+<button id="btn">
+Buscar Matches
+</button>
+</div>
+
+</div>
+
+<div class="results-title" id="resultsTitle"></div>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+function cambiarModo(modo){
+
+  const cliente = document.getElementById("modoCliente");
+  const whatsapp = document.getElementById("modoWhatsapp");
+
+  const btnCliente = document.getElementById("btnCliente");
+  const btnWhatsapp = document.getElementById("btnWhatsapp");
+
+  if(modo === "cliente"){
+
+    cliente.style.display = "block";
+    whatsapp.style.display = "none";
+
+    btnCliente.className = "active";
+    btnWhatsapp.className = "inactive";
+
+  }else{
+
+    cliente.style.display = "none";
+    whatsapp.style.display = "block";
+
+    btnCliente.className = "inactive";
+    btnWhatsapp.className = "active";
   }
 }
-              </html>
-              
+
+async function buscarCliente(){
+
+  const zona = document.getElementById("zona").value;
+  const recamaras = document.getElementById("recamarasInput").value;
+  const presupuesto = document.getElementById("presupuesto").value;
+  const operacion = document.getElementById("operacion").value;
+
+  document.getElementById("result").innerHTML = "Buscando...";
+
+  const res = await fetch("/api/match",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      modoManual:true,
+      zona,
+      recamaras,
+      presupuesto,
+      operacion
+    })
+  });
+
+  const data = await res.json();
+
+  pintarResultados(data);
+}
+
+document.getElementById("btn").addEventListener("click", async ()=>{
+
+  const chat = document.getElementById("chat").value;
+
+  document.getElementById("result").innerHTML = "Buscando...";
+
+  const res = await fetch("/api/match",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({ chat })
+  });
+
+  const data = await res.json();
+
+  pintarResultados(data);
+
+});
+
+function pintarResultados(data){
+
+  document.getElementById("resultsTitle").innerHTML =
+    `${data.encontrados} resultados`;
+
+  let html = "";
+
+  data.matches.forEach(p=>{
+
+    html += `
+    <div class="card">
+
+      <h3>${p["título de propiedad"] || "Sin título"}</h3>
+
+      <div class="price">
+        ${p["precio de renta"] || p["precio de venta"] || "N/A"}
+      </div>
+
+      <div class="location">
+        📍 ${p["colonia/zona/barrio"] || ""}
+      </div>
+
+      <div class="details">
+        🛏 ${p["recámaras"] || 0}
+        ·
+        🛁 ${p["baños"] || 0}
+        ·
+        🚗 ${p["estacionamientos"] || 0}
+      </div>
+
+      <div class="buttons">
+
+        <button
+          class="copy-btn"
+          onclick="navigator.clipboard.writeText('${p["id público (EB)"] || ""}')"
+        >
+          Copiar código
+        </button>
+
+        <a
+          class="whatsapp-btn"
+          target="_blank"
+          href="https://wa.me/?text=${encodeURIComponent(
+            `Te comparto esta propiedad:\n\n${p["título de propiedad"]}\nCódigo: ${p["id público (EB)"]}\nPrecio: ${p["precio de renta"] || p["precio de venta"]}`
+          )}"
+        >
+          WhatsApp
+        </a>
+
+      </div>
+
+    </div>
+    `;
+  });
+
+  document.getElementById("result").innerHTML = html;
+}
+
+async function actualizarInventario(){
+
+  try{
+
+    await fetch("/api/sync-easybroker");
+
+    alert("Inventario actualizado");
+
+  }catch(error){
+
+    alert("Error actualizando");
+  }
+}
+
+</script>
+
+</body>
+</html>
